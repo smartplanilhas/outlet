@@ -9,7 +9,6 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "http2.mlstatic.com" },
     ],
   },
-  cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
     rules: {
