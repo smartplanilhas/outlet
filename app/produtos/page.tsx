@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import sql, { ensureTable } from "@/lib/db";
 import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import EditableRow from "@/components/EditableRow";
