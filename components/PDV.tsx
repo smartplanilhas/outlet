@@ -56,6 +56,7 @@ export default function PDV() {
   // Discount
   const [discInput, setDiscInput]   = useState("");
   const [discType, setDiscType]     = useState<"%" | "R$">("%");
+  const [valorCombinado, setValorCombinado] = useState("");
 
   // Payment
   const [payment, setPayment]     = useState<PayMethod | "">("");
@@ -70,12 +71,17 @@ export default function PDV() {
   const valorPagoRef = useRef<HTMLInputElement>(null);
 
   // ── Cálculos ──
-  const subtotal = cart.reduce((s, i) => s + i.preco * i.qty, 0);
-  const discRaw  = parseFloat(discInput.replace(",", ".") || "0");
-  const discAmt  = isNaN(discRaw) ? 0 : discType === "%" ? subtotal * discRaw / 100 : discRaw;
-  const total    = Math.max(0, subtotal - discAmt);
-  const paid     = parseFloat(valorPago.replace(",", ".") || "0");
-  const troco    = payment === "dinheiro" && paid > total ? paid - total : 0;
+  const subtotal  = cart.reduce((s, i) => s + i.preco * i.qty, 0);
+  const vcNum     = parseFloat(valorCombinado.replace(",", ".") || "0");
+  const vcActive  = valorCombinado.trim() !== "" && !isNaN(vcNum) && vcNum > 0 && vcNum < subtotal;
+  const discRaw   = parseFloat(discInput.replace(",", ".") || "0");
+  const discAmt   = vcActive
+    ? subtotal - vcNum
+    : isNaN(discRaw) ? 0 : discType === "%" ? subtotal * discRaw / 100 : discRaw;
+  const total     = vcActive ? vcNum : Math.max(0, subtotal - discAmt);
+  const discPct   = subtotal > 0 && discAmt > 0 ? Math.round((discAmt / subtotal) * 100) : 0;
+  const paid      = parseFloat(valorPago.replace(",", ".") || "0");
+  const troco     = payment === "dinheiro" && paid > total ? paid - total : 0;
   const canFinalize = cart.length > 0 && payment !== ""
     && (payment !== "dinheiro" || paid >= total);
 
@@ -184,7 +190,7 @@ export default function PDV() {
   }
 
   function handleNewSale() {
-    setCart([]); setDiscInput(""); setDiscType("%");
+    setCart([]); setDiscInput(""); setDiscType("%"); setValorCombinado("");
     setPayment(""); setValorPago(""); setSale(null); setError(null);
   }
 
@@ -403,32 +409,66 @@ export default function PDV() {
         {cart.length > 0 && (
           <div className="border-t border-gray-200 bg-white p-4 flex flex-col gap-4">
 
-            {/* Desconto */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Desconto</label>
-              <div className="flex gap-1">
+            {/* Desconto rápido */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Desconto</label>
+              <div className="flex gap-1.5 flex-wrap">
                 {(["5", "10", "20", "50"] as const).map(v => (
                   <button key={v}
-                    onClick={() => { setDiscInput(v); setDiscType("%"); }}
-                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${
-                      discInput === v && discType === "%" ? "bg-orange-500 border-orange-500 text-white" : "border-gray-300 text-gray-500 hover:border-orange-400 hover:text-orange-600"
+                    onClick={() => { setDiscInput(v); setDiscType("%"); setValorCombinado(""); }}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                      !vcActive && discInput === v && discType === "%" ? "bg-orange-500 border-orange-500 text-white" : "border-gray-300 text-gray-500 hover:border-orange-400 hover:text-orange-600"
                     }`}>
                     {v}%
                   </button>
                 ))}
+                <div className="flex flex-1 rounded-xl border border-gray-300 overflow-hidden min-w-[80px]">
+                  <input
+                    value={vcActive ? "" : discInput}
+                    onChange={e => { setDiscInput(e.target.value); setValorCombinado(""); }}
+                    inputMode="decimal"
+                    placeholder="0"
+                    className="flex-1 px-3 py-1.5 text-sm outline-none min-w-0"
+                  />
+                  <button onClick={() => { setDiscType(t => t === "%" ? "R$" : "%"); setValorCombinado(""); }}
+                    className="px-2.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 border-l border-gray-300 transition-colors min-w-[36px]">
+                    {discType}
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-1 rounded-xl border border-gray-300 overflow-hidden min-w-0">
-                <input
-                  value={discInput}
-                  onChange={e => setDiscInput(e.target.value)}
-                  inputMode="decimal"
-                  placeholder="0"
-                  className="flex-1 px-3 py-2 text-sm outline-none min-w-0"
-                />
-                <button onClick={() => setDiscType(t => t === "%" ? "R$" : "%")}
-                  className="px-3 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 border-l border-gray-300 transition-colors min-w-[40px]">
-                  {discType}
-                </button>
+
+              {/* Valor combinado */}
+              <div className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 transition-colors ${
+                vcActive ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-gray-50"
+              }`}>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 leading-none mb-1">
+                    Ou — valor combinado com o cliente
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-sm font-mono">R$</span>
+                    <input
+                      value={valorCombinado}
+                      onChange={e => { setValorCombinado(e.target.value); setDiscInput(""); }}
+                      inputMode="decimal"
+                      placeholder={subtotal > 0 ? subtotal.toFixed(2).replace(".", ",") : "0,00"}
+                      className="flex-1 min-w-0 bg-transparent outline-none text-sm font-mono font-semibold text-blue-700 placeholder:text-gray-300"
+                    />
+                    {valorCombinado && (
+                      <button onClick={() => setValorCombinado("")} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {vcActive && (
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-xs font-bold text-orange-600">-{discPct}%</p>
+                    <p className="text-xs text-orange-500">-{BRL.format(discAmt)}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -436,11 +476,16 @@ export default function PDV() {
             <div className="flex flex-col gap-1 text-sm">
               {discAmt > 0 && (
                 <>
-                  <div className="flex justify-between text-gray-500">
+                  <div className="flex justify-between text-gray-400">
                     <span>Subtotal</span><span>{BRL.format(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-orange-600 font-medium">
-                    <span>Desconto ({discType === "%" ? `${discInput}%` : BRL.format(discAmt)})</span>
+                    <span>
+                      {vcActive
+                        ? `Negociado (−${discPct}%)`
+                        : `Desconto (${discType === "%" ? `${discInput}%` : BRL.format(discAmt)})`
+                      }
+                    </span>
                     <span>− {BRL.format(discAmt)}</span>
                   </div>
                 </>
