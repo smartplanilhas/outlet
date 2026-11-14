@@ -82,6 +82,7 @@ export default function PDV() {
   // Payment
   const [payment, setPayment]     = useState<PayMethod | "">("");
   const [valorPago, setValorPago] = useState("");
+  const [showTroco, setShowTroco] = useState(false);
 
   // Finalização
   const [finalizing, setFinalizing] = useState(false);
@@ -102,9 +103,9 @@ export default function PDV() {
   const total     = vcActive ? vcNum : Math.max(0, subtotal - discAmt);
   const discPct   = subtotal > 0 && discAmt > 0 ? Math.round((discAmt / subtotal) * 100) : 0;
   const paid      = parseFloat(valorPago.replace(",", ".") || "0");
-  const troco     = payment === "dinheiro" && paid > total ? paid - total : 0;
+  const troco     = showTroco && payment === "dinheiro" && paid > total ? paid - total : 0;
   const canFinalize = cart.length > 0 && payment !== ""
-    && (payment !== "dinheiro" || paid >= total);
+    && (!showTroco || payment !== "dinheiro" || paid >= total);
 
   // ── Busca com debounce ──
   useEffect(() => {
@@ -189,8 +190,8 @@ export default function PDV() {
           desconto:        discAmt,
           total,
           forma_pagamento: payment,
-          valor_pago:      payment === "dinheiro" ? paid : total,
-          troco:           payment === "dinheiro" ? troco : 0,
+          valor_pago:      showTroco && payment === "dinheiro" ? paid : total,
+          troco:           showTroco && payment === "dinheiro" ? troco : 0,
           itens: cart.map(i => ({
             produto_id:     i.produtoId,
             descricao:      i.descricao,
@@ -204,8 +205,8 @@ export default function PDV() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setSale({ id: data.id, subtotal, desconto: discAmt, total, forma_pagamento: payment,
-                valor_pago: payment === "dinheiro" ? paid : total,
-                troco: payment === "dinheiro" ? troco : 0,
+                valor_pago: showTroco && payment === "dinheiro" ? paid : total,
+                troco:      showTroco && payment === "dinheiro" ? troco : 0,
                 itens: [...cart] });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao finalizar.");
@@ -216,7 +217,7 @@ export default function PDV() {
 
   function handleNewSale() {
     setCart([]); setDiscInput(""); setDiscType("%"); setValorCombinado("");
-    setPayment(""); setValorPago(""); setSale(null); setError(null);
+    setPayment(""); setValorPago(""); setShowTroco(false); setSale(null); setError(null);
   }
 
   // ── Render: receipt após venda ─────────────────────────────────────────────
@@ -542,19 +543,35 @@ export default function PDV() {
               </div>
             </div>
 
-            {/* Valor pago (dinheiro) */}
-            {payment === "dinheiro" && (
+            {/* Troco (opcional, só dinheiro) */}
+            {payment === "dinheiro" && !showTroco && (
+              <button
+                onClick={() => { setShowTroco(true); setTimeout(() => valorPagoRef.current?.focus(), 50); }}
+                className="text-xs text-gray-400 hover:text-gray-600 self-start transition-colors flex items-center gap-1"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
+                </svg>
+                Calcular troco
+              </button>
+            )}
+
+            {payment === "dinheiro" && showTroco && (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor recebido</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor recebido</label>
+                      <button onClick={() => { setShowTroco(false); setValorPago(""); }}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Cancelar</button>
+                    </div>
                     <input
                       ref={valorPagoRef}
                       value={valorPago}
                       onChange={e => setValorPago(e.target.value)}
                       inputMode="decimal"
                       placeholder={BRL.format(total)}
-                      className="mt-1 w-full rounded-xl border-2 border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none px-4 py-2.5 text-base font-mono font-bold text-green-700 transition-colors"
+                      className="w-full rounded-xl border-2 border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none px-4 py-2.5 text-base font-mono font-bold text-green-700 transition-colors"
                     />
                   </div>
                   {troco > 0 && (
@@ -564,7 +581,6 @@ export default function PDV() {
                     </div>
                   )}
                 </div>
-                {/* Teclas de atalho */}
                 <div className="flex gap-1.5">
                   {[total, Math.ceil(total / 10) * 10, Math.ceil(total / 50) * 50, Math.ceil(total / 100) * 100]
                     .filter((v, i, a) => a.indexOf(v) === i && v >= total)
@@ -575,8 +591,7 @@ export default function PDV() {
                         className="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors">
                         {BRL.format(v)}
                       </button>
-                    ))
-                  }
+                    ))}
                 </div>
               </div>
             )}
