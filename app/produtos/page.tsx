@@ -5,6 +5,7 @@ import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import type { Triagem } from "@/app/api/triagens/route";
 import EditableRow from "@/components/EditableRow";
 import CategoriaFilter from "@/components/CategoriaFilter";
+import ProdutosSearch from "@/components/ProdutosSearch";
 import NavBar from "@/components/NavBar";
 
 async function getAllTriagens(): Promise<Triagem[]> {
@@ -46,16 +47,31 @@ async function getTriagem(id: number): Promise<Triagem | null> {
 export default async function ProdutosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ triagem?: string; categoria?: string }>;
+  searchParams: Promise<{ triagem?: string; categoria?: string; q?: string }>;
 }) {
-  const { triagem: triagemParam, categoria: categoriaParam } = await searchParams;
+  const { triagem: triagemParam, categoria: categoriaParam, q: qParam } = await searchParams;
   const triagemId  = triagemParam ? parseInt(triagemParam) : undefined;
   const categoria  = categoriaParam ?? "";
-  const [produtos, triagem, todasTriagens] = await Promise.all([
+  const q          = qParam?.trim() ?? "";
+  const [produtosRaw, triagem, todasTriagens] = await Promise.all([
     getProdutos(triagemId, categoria || undefined),
     triagemId ? getTriagem(triagemId) : Promise.resolve(null),
     getAllTriagens(),
   ]);
+
+  const produtos = q
+    ? produtosRaw.filter(p => {
+        const lower = q.toLowerCase();
+        return (
+          p.descricao.toLowerCase().includes(lower) ||
+          (p.codigo ?? "").toLowerCase().includes(lower) ||
+          (p.codigo_ml ?? "").toLowerCase().includes(lower) ||
+          (p.endereco ?? "").toLowerCase().includes(lower) ||
+          (p.categoria ?? "").toLowerCase().includes(lower) ||
+          String(p.id) === q
+        );
+      })
+    : produtosRaw;
 
   const totalQtd    = produtos.reduce((s, p) => s + Number(p.quantidade ?? 1), 0);
   const totalRefML  = produtos.reduce((s, p) => s + Number(p.preco_referencia ?? 0) * Number(p.quantidade ?? 1), 0);
@@ -135,25 +151,33 @@ export default async function ProdutosPage({
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-lg font-semibold text-gray-800">
-                {produtos.length} produto{produtos.length !== 1 ? "s" : ""}
-                {categoria && <span className="text-purple-600"> · {categoria}</span>}
-              </h2>
-              <CategoriaFilter current={categoria} triagemParam={triagemParam} />
-              {categoria && (
-                <a
-                  href={triagemParam ? `/produtos?triagem=${triagemParam}` : "/produtos"}
-                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  Limpar filtro ×
-                </a>
-              )}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {produtos.length} produto{produtos.length !== 1 ? "s" : ""}
+                  {q && <span className="text-blue-600"> · "{q}"</span>}
+                  {categoria && !q && <span className="text-purple-600"> · {categoria}</span>}
+                </h2>
+                <CategoriaFilter current={categoria} triagemParam={triagemParam} />
+                {categoria && (
+                  <a
+                    href={triagemParam ? `/produtos?triagem=${triagemParam}` : "/produtos"}
+                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    Limpar filtro ×
+                  </a>
+                )}
+              </div>
+              <a href="/" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors whitespace-nowrap">
+                + Nova triagem
+              </a>
             </div>
-            <a href="/" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors whitespace-nowrap">
-              + Nova triagem
-            </a>
+            <ProdutosSearch
+              defaultValue={q}
+              triagemParam={triagemParam}
+              categoriaParam={categoriaParam}
+            />
           </div>
 
           {/* Cards de totais (somente quando não há banner de triagem) */}
