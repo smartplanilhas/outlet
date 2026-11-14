@@ -7,6 +7,7 @@ export interface MLProduct {
   pictures: string[];
   attributes: { id: string; name: string; value: string }[];
   price: number | null;
+  partial?: boolean;
 }
 
 let tokenCache: { token: string; expiresAt: number } | null = null;
@@ -92,6 +93,46 @@ function extractPrice(html: string): number | null {
   // fallback: busca padrão R$ no HTML
   const m = html.match(/["']price["']\s*:\s*["']?([\d.]+)["']?/);
   return m ? parseFloat(m[1]) : null;
+}
+
+function titleFromSlug(raw: string): string {
+  // Extrai o slug de URLs tipo /MLB-3862334609-scarpin-feminino-...-_JM
+  const m = raw.match(/\/MLB-\d+-([\w-]+?)(?:-_[A-Z]+)?(?:[?#]|$)/i);
+  if (!m) return "";
+  return m[1]
+    .split("-")
+    .filter(w => w.length > 1)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
+    .trim();
+}
+
+async function fetchFromSearch(id: string, q: string, token: string): Promise<MLProduct | null> {
+  for (const query of [id, q]) {
+    if (!query) continue;
+    try {
+      const url = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(query)}&limit=5`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const results: { id: string; title: string; thumbnail?: string; price?: number }[] =
+        data.results ?? [];
+      const match = results.find(r => r.id === id) ?? results[0];
+      if (!match?.title) continue;
+      return {
+        id: match.id,
+        name: match.title,
+        thumbnail: (match.thumbnail ?? "").replace(/-I\.jpg$/i, "-O.jpg"),
+        pictures: match.thumbnail ? [match.thumbnail] : [],
+        attributes: [],
+        price: match.price ?? null,
+      };
+    } catch { /* tenta próximo */ }
+  }
+  return null;
 }
 
 async function fetchFromPage(id: string): Promise<MLProduct | null> {
@@ -208,20 +249,40 @@ export async function GET(req: NextRequest) {
   }
 
   const token = await getToken();
+  const slugTitle = titleFromSlug(raw);
 
-  // 1. API pública de itens (funciona sem credenciais, cobre a maioria dos anúncios)
+  // 1. Items API (funciona com token; sem token ML bloqueia)
   const item = await fetchFromItem(id, token);
   if (item) return NextResponse.json(item);
 
-  // 2. API de catálogo (IDs de produto catalogado — requer token)
+  // 2. Catálogo (produtos catalogados — requer token)
   if (token) {
     const catalog = await fetchFromCatalog(id, token);
     if (catalog) return NextResponse.json(catalog);
   }
 
-  // 3. fallback: scraping da página do anúncio
+  // 3. Busca ML (com token, usando ID e slug como query)
+  if (token && slugTitle) {
+    const found = await fetchFromSearch(id, slugTitle, token);
+    if (found) return NextResponse.json(found);
+  }
+
+  // 4. Scraping da página do anúncio
   const page = await fetchFromPage(id);
   if (page) return NextResponse.json(page);
 
-  return NextResponse.json({ error: `Produto não encontrado. [id:${id}]` }, { status: 404 });
+  // 5. Último recurso: retorna nome extraído do slug da URL para o usuário completar manualmente
+  if (slugTitle) {
+    return NextResponse.json({
+      id,
+      name: slugTitle,
+      thumbnail: "",
+      pictures: [],
+      attributes: [],
+      price: null,
+      partial: true,
+    });
+  }
+
+  return NextResponse.json({ error: `Produto não encontrado. Configure ML_CLIENT_ID e ML_CLIENT_SECRET no .env.local para importar diretamente. [id:${id}]` }, { status: 404 });
 }

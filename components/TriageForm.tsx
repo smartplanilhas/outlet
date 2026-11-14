@@ -141,7 +141,8 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
       if (!res.ok) throw new Error(data.error ?? "Erro ao buscar código ML.");
       if (data.name) setDescription(data.name);
       if (data.thumbnail) setPhoto(data.thumbnail);
-      applyMlRef({ id: data.id ?? mlCode.trim(), title: data.name, price: data.price ?? null, permalink: "", thumbnail: data.thumbnail });
+      applyMlRef({ id: data.id ?? mlCode.trim(), title: data.name, price: data.price ?? null, permalink: "", thumbnail: data.thumbnail ?? "" });
+      if (data.partial) setMlError("Nome extraído da URL — confirme e adicione preço/foto manualmente.");
       setMlCode(""); setSavedId(null);
       precoRef.current?.focus();
     } catch (err) {
