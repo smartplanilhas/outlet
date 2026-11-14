@@ -116,8 +116,28 @@ function TriagemQuickAssign({
 
 // ─── Linha da tabela ──────────────────────────────────────────────────────────
 export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; triagens?: Triagem[] }) {
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal]       = useState(false);
+  const [inCatalog, setInCatalog]       = useState(!!p.catalogo);
+  const [togglingCat, setTogglingCat]   = useState(false);
   const router = useRouter();
+
+  async function toggleCatalog() {
+    setTogglingCat(true);
+    const next = !inCatalog;
+    setInCatalog(next);
+    try {
+      await fetch(`/api/triagem?id=${p.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ catalogo: next }),
+      });
+      router.refresh();
+    } catch {
+      setInCatalog(!next);
+    } finally {
+      setTogglingCat(false);
+    }
+  }
 
   return (
     <>
@@ -193,6 +213,21 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
 
         <td className="px-2 py-3">
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={toggleCatalog}
+              disabled={togglingCat}
+              title={inCatalog ? "Remover do catálogo" : "Publicar no catálogo"}
+              className={`p-1.5 rounded-lg transition-colors ${
+                inCatalog
+                  ? "text-orange-500 bg-orange-50 hover:bg-orange-100"
+                  : "text-gray-300 hover:text-orange-400 hover:bg-orange-50"
+              }`}
+            >
+              <svg className="w-4 h-4" fill={inCatalog ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+            </button>
             <button
               onClick={() => setShowModal(true)}
               className="p-1.5 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"

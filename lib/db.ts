@@ -33,6 +33,7 @@ export async function ensureTable() {
   `;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS triagem_id INTEGER REFERENCES triagens(id) ON DELETE SET NULL`;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS categoria VARCHAR(100)`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS catalogo BOOLEAN DEFAULT false`;
   await sql`
     CREATE TABLE IF NOT EXISTS vendas (
       id              SERIAL PRIMARY KEY,

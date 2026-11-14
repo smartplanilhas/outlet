@@ -15,6 +15,7 @@ export interface ProdutoTriagem {
   data_triagem: string;
   triagem_id: number | null;
   categoria: string | null;
+  catalogo: boolean | null;
 }
 
 export interface ProdutoPayload {
@@ -29,6 +30,7 @@ export interface ProdutoPayload {
   endereco?: string | null;
   triagem_id?: number | null;
   categoria?: string | null;
+  catalogo?: boolean | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -86,9 +88,11 @@ export async function PATCH(req: NextRequest) {
         WHERE id = ${parseInt(id)}
       `;
     }
-    // Triagem assignment — handled separately so a null means "unassign"
     if ("triagem_id" in body) {
       await sql`UPDATE produtos_triagem SET triagem_id = ${body.triagem_id ?? null} WHERE id = ${parseInt(id)}`;
+    }
+    if ("catalogo" in body) {
+      await sql`UPDATE produtos_triagem SET catalogo = ${body.catalogo ?? false} WHERE id = ${parseInt(id)}`;
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
