@@ -117,12 +117,33 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
     if (!description.trim()) return;
     setSaving(true); setSavedId(null); setError(null);
     try {
+      // Upload foto local (câmera/galeria) antes de salvar
+      let fotoUrl: string | undefined = undefined;
+      if (photo) {
+        if (photo.startsWith("http")) {
+          fotoUrl = photo;
+        } else {
+          try {
+            const blob = await fetch(photo).then(r => r.blob());
+            const ext  = blob.type.split("/")[1] || "jpg";
+            const file = new File([blob], `foto-${Date.now()}.${ext}`, { type: blob.type });
+            const form = new FormData();
+            form.append("file", file);
+            const up = await fetch("/api/upload", { method: "POST", body: form });
+            const ud = await up.json();
+            if (up.ok) fotoUrl = ud.url;
+          } catch {
+            // upload falhou — salva sem foto
+          }
+        }
+      }
+
       const precoNum = preco ? parseFloat(preco.replace(",", ".")) : 0;
       const custoNum = custo ? parseFloat(custo.replace(",", ".")) : 0;
       const payload  = {
         codigo:           codigo.trim() || undefined,
         descricao:        description.trim(),
-        foto_url:         photo?.startsWith("http") ? photo : undefined,
+        foto_url:         fotoUrl,
         codigo_ml:        mlRef?.id || undefined,
         preco_referencia: mlRef?.price ?? undefined,
         custo:            custoNum || undefined,
