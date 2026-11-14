@@ -46,7 +46,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
   const [mlError, setMlError]       = useState<string | null>(null);
 
   const [saving, setSaving]         = useState(false);
-  const [savedId, setSavedId]       = useState<number | null>(null);
+  const [savedInfo, setSavedInfo]   = useState<{ id: number; descricao: string } | null>(null);
   const [error, setError]           = useState<string | null>(null);
 
   // Detecção de produto existente pelo código
@@ -143,7 +143,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
       if (data.thumbnail) setPhoto(data.thumbnail);
       applyMlRef({ id: data.id ?? mlCode.trim(), title: data.name, price: data.price ?? null, permalink: "", thumbnail: data.thumbnail ?? "" });
       if (data.partial) setMlError("Nome extraído da URL — confirme e adicione preço/foto manualmente.");
-      setMlCode(""); setSavedId(null);
+      setMlCode(""); setSavedInfo(null);
       precoRef.current?.focus();
     } catch (err) {
       setMlError(err instanceof Error ? err.message : "Erro ao buscar.");
@@ -156,7 +156,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
     setDescription(item.title);
     if (item.thumbnail) setPhoto(item.thumbnail);
     applyMlRef({ id: item.id, title: item.title, price: item.price, permalink: item.permalink, thumbnail: item.thumbnail });
-    setResult(null); setSearched(false); setError(null); setSavedId(null);
+    setResult(null); setSearched(false); setError(null); setSavedInfo(null);
     if (fileRef.current) fileRef.current.value = "";
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     setTimeout(() => precoRef.current?.focus(), 300);
@@ -164,7 +164,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
 
   async function handleSave() {
     if (!description.trim()) return;
-    setSaving(true); setSavedId(null); setError(null);
+    setSaving(true); setSavedInfo(null); setError(null);
     try {
       const precoNum = preco ? parseFloat(preco.replace(",", ".")) : 0;
       const custoNum = custo ? parseFloat(custo.replace(",", ".")) : 0;
@@ -182,8 +182,11 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
       const res  = await fetch("/api/triagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setSavedId(data.id);
+      setSavedInfo({ id: data.id, descricao: description.trim() });
       onProductSaved?.(precoNum, custoNum, 1);
+      setTimeout(() => {
+        handleClear();
+      }, 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao salvar.");
     } finally {
@@ -213,8 +216,8 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
   function handleClear() {
     setCodigo(""); setDescription(""); setPhoto(null); setCategoria("");
     setCusto(""); setPreco(""); setMlRef(null); setResult(null);
-    setError(null); setSearched(false); setSavedId(null);
-    setExistingMatch(null); setIncrementDone(null);
+    setError(null); setSearched(false); setSavedInfo(null);
+    setExistingMatch(null); setIncrementDone(null); setSavedInfo(null);
     setShowBusca(false); setBuscaQuery(""); setBuscaResults([]);
     if (fileRef.current) fileRef.current.value = "";
   }
@@ -562,54 +565,60 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
 
         {/* ── Botões ── */}
         <div className="p-4 flex flex-col gap-3">
-          {/* Salvar — botão principal full width */}
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || !description.trim()}
-            className="w-full py-3.5 rounded-2xl bg-green-600 text-white font-bold text-base hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-          >
-            {saving ? (
-              <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Salvando...</>
-            ) : (
-              <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>Salvar produto</>
-            )}
-          </button>
 
-          {/* Secundários: salvo + limpar + buscar ML */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {savedId && (
-                <span className="text-sm text-green-600 font-semibold flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-                  </svg>
-                  Salvo #{savedId}
-                </span>
-              )}
-              {(codigo || description || searched) && !savedId && (
-                <button type="button" onClick={handleClear} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                  Limpar
-                </button>
-              )}
-              {savedId && (
-                <button type="button" onClick={handleClear} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                  Novo produto
-                </button>
-              )}
+          {/* Banner de sucesso */}
+          {savedInfo ? (
+            <div className="w-full rounded-2xl bg-green-500 text-white px-5 py-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-base leading-tight">Produto salvo!</p>
+                <p className="text-sm text-green-100 truncate mt-0.5">{savedInfo.descricao}</p>
+                <p className="text-xs text-green-200 mt-0.5">#{savedInfo.id} · limpando em instantes...</p>
+              </div>
             </div>
+          ) : (
+            /* Salvar — botão principal full width */
             <button
-              type="submit"
-              disabled={loading || !description.trim()}
-              className="px-4 py-2 rounded-xl border border-blue-300 text-blue-600 text-sm font-semibold hover:bg-blue-50 disabled:opacity-40 transition-colors flex items-center gap-1.5"
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !description.trim()}
+              className="w-full py-3.5 rounded-2xl bg-green-600 text-white font-bold text-base hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
-              {loading
-                ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              }
-              Buscar ML
+              {saving ? (
+                <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Salvando...</>
+              ) : (
+                <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>Salvar produto</>
+              )}
             </button>
-          </div>
+          )}
+
+          {/* Limpar + Buscar ML */}
+          {!savedInfo && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {(codigo || description || searched) && (
+                  <button type="button" onClick={handleClear} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                    Limpar
+                  </button>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !description.trim()}
+                className="px-4 py-2 rounded-xl border border-blue-300 text-blue-600 text-sm font-semibold hover:bg-blue-50 disabled:opacity-40 transition-colors flex items-center gap-1.5"
+              >
+                {loading
+                  ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                }
+                Buscar ML
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">{error}</div>
