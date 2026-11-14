@@ -1,0 +1,28 @@
+export const CATEGORIAS = [
+  "Ferramentas e Equipamentos",
+  "Casa, Decoração e Utilidades",
+  "Eletrodomésticos",
+  "Móveis e Colchões",
+  "Eletrônicos e Áudio",
+  "Beleza e Cuidados Pessoais",
+  "Esportes e Fitness",
+  "Brinquedos e Hobbies",
+  "Infantil e Bebê",
+  "Bicicletas e Ciclismo",
+  "Automotivo e Acessórios",
+  "Piscina e Jardim",
+  "Pesca e Náutica",
+  "Pet Shop",
+  "Industrial e Food Service",
+  "Bebidas",
+  "Celulares",
+  "Informática",
+  "Pneus",
+  "Saúde e Ortopedia",
+  "Construção e Reforma",
+  "Instrumentos Musicais",
+  "Ventilação e Climatização",
+  "Moda e Calçados",
+] as const;
+
+export type Categoria = typeof CATEGORIAS[number];

@@ -4,6 +4,7 @@ import sql, { ensureTable } from "@/lib/db";
 import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import type { Triagem } from "@/app/api/triagens/route";
 import EditableRow from "@/components/EditableRow";
+import CategoriaFilter from "@/components/CategoriaFilter";
 
 async function getAllTriagens(): Promise<Triagem[]> {
   const rows = await sql`SELECT * FROM triagens ORDER BY data_inicio DESC`;
@@ -13,12 +14,18 @@ async function getAllTriagens(): Promise<Triagem[]> {
 const BRL  = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const DATE = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-async function getProdutos(triagemId?: number): Promise<ProdutoTriagem[]> {
+async function getProdutos(triagemId?: number, categoria?: string): Promise<ProdutoTriagem[]> {
   await ensureTable();
-  const rows = triagemId
-    ? await sql`SELECT * FROM produtos_triagem WHERE triagem_id = ${triagemId} ORDER BY data_triagem DESC LIMIT 500`
-    : await sql`SELECT * FROM produtos_triagem ORDER BY data_triagem DESC LIMIT 200`;
-  return rows as ProdutoTriagem[];
+  if (triagemId && categoria) {
+    return await sql`SELECT * FROM produtos_triagem WHERE triagem_id = ${triagemId} AND categoria = ${categoria} ORDER BY data_triagem DESC LIMIT 500` as ProdutoTriagem[];
+  }
+  if (triagemId) {
+    return await sql`SELECT * FROM produtos_triagem WHERE triagem_id = ${triagemId} ORDER BY data_triagem DESC LIMIT 500` as ProdutoTriagem[];
+  }
+  if (categoria) {
+    return await sql`SELECT * FROM produtos_triagem WHERE categoria = ${categoria} ORDER BY data_triagem DESC LIMIT 500` as ProdutoTriagem[];
+  }
+  return await sql`SELECT * FROM produtos_triagem ORDER BY data_triagem DESC LIMIT 200` as ProdutoTriagem[];
 }
 
 async function getTriagem(id: number): Promise<Triagem | null> {
@@ -38,12 +45,13 @@ async function getTriagem(id: number): Promise<Triagem | null> {
 export default async function ProdutosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ triagem?: string }>;
+  searchParams: Promise<{ triagem?: string; categoria?: string }>;
 }) {
-  const { triagem: triagemParam } = await searchParams;
+  const { triagem: triagemParam, categoria: categoriaParam } = await searchParams;
   const triagemId  = triagemParam ? parseInt(triagemParam) : undefined;
+  const categoria  = categoriaParam ?? "";
   const [produtos, triagem, todasTriagens] = await Promise.all([
-    getProdutos(triagemId),
+    getProdutos(triagemId, categoria || undefined),
     triagemId ? getTriagem(triagemId) : Promise.resolve(null),
     getAllTriagens(),
   ]);
@@ -129,11 +137,23 @@ export default async function ProdutosPage({
             </div>
           )}
 
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800">
-              {triagemId ? `${produtos.length} produto${produtos.length !== 1 ? "s" : ""} nesta triagem` : `${produtos.length} produto${produtos.length !== 1 ? "s" : ""} triado${produtos.length !== 1 ? "s" : ""}`}
-            </h2>
-            <a href="/" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-lg font-semibold text-gray-800">
+                {produtos.length} produto{produtos.length !== 1 ? "s" : ""}
+                {categoria && <span className="text-purple-600"> · {categoria}</span>}
+              </h2>
+              <CategoriaFilter current={categoria} triagemParam={triagemParam} />
+              {categoria && (
+                <a
+                  href={triagemParam ? `/produtos?triagem=${triagemParam}` : "/produtos"}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Limpar filtro ×
+                </a>
+              )}
+            </div>
+            <a href="/" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors whitespace-nowrap">
               + Nova triagem
             </a>
           </div>

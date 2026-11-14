@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import type { Triagem } from "@/app/api/triagens/route";
+import { CATEGORIAS } from "@/lib/categorias";
 
 const DATE = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit", month: "2-digit", year: "numeric",
@@ -24,6 +25,7 @@ interface Props {
 export default function ProductEditModal({ p, triagens, onClose, onSaved }: Props) {
   const [fields, setFields] = useState({
     descricao:        p.descricao,
+    categoria:        p.categoria ?? "",
     codigo:           p.codigo ?? "",
     endereco:         p.endereco ?? "",
     quantidade:       String(p.quantidade ?? 1),
@@ -59,6 +61,7 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           descricao:        fields.descricao.trim(),
+          categoria:        fields.categoria || null,
           codigo:           fields.codigo || null,
           endereco:         fields.endereco || null,
           quantidade:       parseInt(fields.quantidade) || 1,
@@ -123,6 +126,27 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
                 autoFocus
               />
             </div>
+          </div>
+
+          {/* Categoria */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-purple-500 uppercase tracking-wide flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Categoria
+            </label>
+            <select
+              value={fields.categoria}
+              onChange={(e) => setFields(f => ({ ...f, categoria: e.target.value }))}
+              className={inp}
+            >
+              <option value="">— Sem categoria —</option>
+              {CATEGORIAS.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           {/* Código · Endereço · Quantidade */}

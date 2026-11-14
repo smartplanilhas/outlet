@@ -143,7 +143,12 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
 
         <td className="px-4 py-3">
           <p className="font-medium text-gray-800 line-clamp-2 leading-snug">{p.descricao}</p>
-          {p.codigo_ml && <span className="text-xs text-gray-400 font-mono">{p.codigo_ml}</span>}
+          {p.categoria && (
+            <span className="inline-block text-xs bg-purple-50 text-purple-700 font-medium px-1.5 py-0.5 rounded mt-0.5">
+              {p.categoria}
+            </span>
+          )}
+          {p.codigo_ml && <span className="block text-xs text-gray-400 font-mono mt-0.5">{p.codigo_ml}</span>}
           {triagens.length > 0 && (
             <TriagemQuickAssign
               produtoId={p.id}

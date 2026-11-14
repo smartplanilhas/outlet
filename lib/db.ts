@@ -32,4 +32,5 @@ export async function ensureTable() {
     )
   `;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS triagem_id INTEGER REFERENCES triagens(id) ON DELETE SET NULL`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS categoria VARCHAR(100)`;
 }
