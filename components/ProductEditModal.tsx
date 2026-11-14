@@ -25,6 +25,7 @@ interface Props {
 export default function ProductEditModal({ p, triagens, onClose, onSaved }: Props) {
   const [fields, setFields] = useState({
     descricao:        p.descricao,
+    catalogo:         !!p.catalogo,
     categoria:        p.categoria ?? "",
     codigo:           p.codigo ?? "",
     endereco:         p.endereco ?? "",
@@ -61,6 +62,7 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           descricao:        fields.descricao.trim(),
+          catalogo:         fields.catalogo,
           categoria:        fields.categoria || null,
           codigo:           fields.codigo || null,
           endereco:         fields.endereco || null,
@@ -127,6 +129,42 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
               />
             </div>
           </div>
+
+          {/* Catálogo público */}
+          <button
+            type="button"
+            onClick={() => setFields(f => ({ ...f, catalogo: !f.catalogo }))}
+            className={`flex items-center gap-3 w-full rounded-xl border-2 px-4 py-3 transition-colors text-left ${
+              fields.catalogo
+                ? "border-orange-400 bg-orange-50"
+                : "border-gray-200 bg-white hover:border-orange-300"
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              fields.catalogo ? "bg-orange-500" : "bg-gray-200"
+            }`}>
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+            </div>
+            <div>
+              <p className={`font-semibold text-sm ${fields.catalogo ? "text-orange-700" : "text-gray-500"}`}>
+                {fields.catalogo ? "Publicado no catálogo" : "Fora do catálogo"}
+              </p>
+              <p className="text-xs text-gray-400">
+                {fields.catalogo ? "Visível em /catalogo com botão de WhatsApp" : "Clique para publicar na vitrine pública"}
+              </p>
+            </div>
+            <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+              fields.catalogo ? "border-orange-500 bg-orange-500" : "border-gray-300"
+            }`}>
+              {fields.catalogo && (
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+          </button>
 
           {/* Categoria */}
           <div className="flex flex-col gap-1.5">
