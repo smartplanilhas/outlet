@@ -6,6 +6,7 @@ import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import Image from "next/image";
 import { CATEGORIAS } from "@/lib/categorias";
 import { compressImage } from "@/lib/image";
+import { STATUS_OPTIONS, type ProdutoStatus } from "@/lib/status";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -35,6 +36,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
   const [categoria, setCategoria]   = useState("");
   const [custo, setCusto]           = useState("");
   const [preco, setPreco]           = useState("");
+  const [status, setStatus]         = useState<ProdutoStatus>("");
   const [mlRef, setMlRef]           = useState<MLRef | null>(null);
 
   const [result, setResult]         = useState<SearchResult | null>(null);
@@ -178,6 +180,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
         preco:            precoNum || undefined,
         triagem_id:       triagemId ?? undefined,
         categoria:        categoria || undefined,
+        status:           status || undefined,
       };
       const res  = await fetch("/api/triagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -217,6 +220,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
     setCodigo(""); setDescription(""); setPhoto(null); setCategoria("");
     setCusto(""); setPreco(""); setMlRef(null); setResult(null);
     setError(null); setSearched(false); setSavedInfo(null);
+    setStatus("");
     setExistingMatch(null); setIncrementDone(null); setSavedInfo(null);
     setShowBusca(false); setBuscaQuery(""); setBuscaResults([]);
     if (fileRef.current) fileRef.current.value = "";
@@ -337,6 +341,34 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
             <option value="">— Selecionar —</option>
             {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
+        </div>
+
+        {/* ── Status ── */}
+        <div className="px-4 py-3">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-2">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Status do produto
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            {STATUS_OPTIONS.map(o => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => setStatus(o.value)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl border-2 transition-all ${
+                  status === o.value
+                    ? o.value === ""
+                      ? "border-gray-400 bg-gray-100 text-gray-700"
+                      : o.color
+                    : "border-gray-200 text-gray-400 hover:border-gray-400"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Código ── */}

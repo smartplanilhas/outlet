@@ -5,19 +5,20 @@ import { useRouter } from "next/navigation";
 type Saldo = "" | "com" | "sem";
 
 interface Props {
-  current: Saldo;
+  current:         Saldo;
   triagemParam?:   string;
   categoriaParam?: string;
   qParam?:         string;
+  statusParam?:    string;
 }
 
 const OPTIONS: { value: Saldo; label: string }[] = [
-  { value: "",    label: "Todos"      },
-  { value: "com", label: "Com saldo"  },
-  { value: "sem", label: "Sem saldo"  },
+  { value: "",    label: "Todos"     },
+  { value: "com", label: "Com saldo" },
+  { value: "sem", label: "Sem saldo" },
 ];
 
-export default function SaldoFilter({ current, triagemParam, categoriaParam, qParam }: Props) {
+export default function SaldoFilter({ current, triagemParam, categoriaParam, qParam, statusParam }: Props) {
   const router = useRouter();
 
   function go(saldo: Saldo) {
@@ -25,6 +26,7 @@ export default function SaldoFilter({ current, triagemParam, categoriaParam, qPa
     if (triagemParam)   params.set("triagem",   triagemParam);
     if (categoriaParam) params.set("categoria", categoriaParam);
     if (qParam)         params.set("q",         qParam);
+    if (statusParam)    params.set("status",    statusParam);
     if (saldo)          params.set("saldo",     saldo);
     const qs = params.toString();
     router.push(`/produtos${qs ? `?${qs}` : ""}`);

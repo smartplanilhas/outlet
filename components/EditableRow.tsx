@@ -8,6 +8,7 @@ import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import type { Triagem } from "@/app/api/triagens/route";
 import DeleteButton from "./DeleteButton";
 import ProductEditModal from "./ProductEditModal";
+import { statusBadge } from "@/lib/status";
 
 const BRL  = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const DATE = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -166,11 +167,21 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
 
         <td className="px-4 py-3">
           <p className="font-medium text-gray-800 line-clamp-2 leading-snug">{p.descricao}</p>
-          {p.categoria && (
-            <span className="inline-block text-xs bg-purple-50 text-purple-700 font-medium px-1.5 py-0.5 rounded mt-0.5">
-              {p.categoria}
-            </span>
-          )}
+          <div className="flex flex-wrap gap-1 mt-0.5">
+            {p.categoria && (
+              <span className="text-xs bg-purple-50 text-purple-700 font-medium px-1.5 py-0.5 rounded">
+                {p.categoria}
+              </span>
+            )}
+            {p.status && (() => {
+              const s = statusBadge(p.status);
+              return s.badge ? (
+                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${s.badge}`}>
+                  {s.label}
+                </span>
+              ) : null;
+            })()}
+          </div>
           {p.codigo_ml && <span className="block text-xs text-gray-400 font-mono mt-0.5">{p.codigo_ml}</span>}
           {triagens.length > 0 && (
             <TriagemQuickAssign

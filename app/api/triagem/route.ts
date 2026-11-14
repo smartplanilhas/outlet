@@ -16,6 +16,7 @@ export interface ProdutoTriagem {
   triagem_id: number | null;
   categoria: string | null;
   catalogo: boolean | null;
+  status: string | null;
 }
 
 export interface ProdutoPayload {
@@ -31,6 +32,7 @@ export interface ProdutoPayload {
   triagem_id?: number | null;
   categoria?: string | null;
   catalogo?: boolean | null;
+  status?: string | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     const rows = await sql`
       INSERT INTO produtos_triagem
-        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco, triagem_id, categoria)
+        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco, triagem_id, categoria, status)
       VALUES
         (${body.codigo?.trim() || null},
          ${body.descricao.trim()},
@@ -56,7 +58,8 @@ export async function POST(req: NextRequest) {
          ${body.quantidade ?? 1},
          ${body.endereco?.trim() || null},
          ${body.triagem_id ?? null},
-         ${body.categoria?.trim() || null})
+         ${body.categoria?.trim() || null},
+         ${body.status?.trim() || null})
       RETURNING id, data_triagem
     `;
 
@@ -84,7 +87,8 @@ export async function PATCH(req: NextRequest) {
           preco            = ${body.preco ?? null},
           quantidade       = ${body.quantidade ?? null},
           endereco         = ${body.endereco?.trim() || null},
-          categoria        = ${body.categoria?.trim() || null}
+          categoria        = ${body.categoria?.trim() || null},
+          status           = ${body.status?.trim() || null}
         WHERE id = ${parseInt(id)}
       `;
     }

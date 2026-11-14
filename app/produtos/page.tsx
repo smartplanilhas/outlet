@@ -7,7 +7,9 @@ import EditableRow from "@/components/EditableRow";
 import CategoriaFilter from "@/components/CategoriaFilter";
 import ProdutosSearch from "@/components/ProdutosSearch";
 import SaldoFilter from "@/components/SaldoFilter";
+import StatusFilter from "@/components/StatusFilter";
 import NavBar from "@/components/NavBar";
+import type { ProdutoStatus } from "@/lib/status";
 
 async function getAllTriagens(): Promise<Triagem[]> {
   const rows = await sql`SELECT * FROM triagens ORDER BY data_inicio DESC`;
@@ -48,13 +50,14 @@ async function getTriagem(id: number): Promise<Triagem | null> {
 export default async function ProdutosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ triagem?: string; categoria?: string; q?: string; saldo?: string }>;
+  searchParams: Promise<{ triagem?: string; categoria?: string; q?: string; saldo?: string; status?: string }>;
 }) {
-  const { triagem: triagemParam, categoria: categoriaParam, q: qParam, saldo: saldoParam } = await searchParams;
+  const { triagem: triagemParam, categoria: categoriaParam, q: qParam, saldo: saldoParam, status: statusParam } = await searchParams;
   const triagemId  = triagemParam ? parseInt(triagemParam) : undefined;
   const categoria  = categoriaParam ?? "";
   const q          = qParam?.trim() ?? "";
   const saldo      = (["com", "sem"].includes(saldoParam ?? "") ? saldoParam : "") as "" | "com" | "sem";
+  const statusFiltro = (["quebrado", "incompleto"].includes(statusParam ?? "") ? statusParam : "") as ProdutoStatus;
 
   const [produtosRaw, triagem, todasTriagens] = await Promise.all([
     getProdutos(triagemId, categoria || undefined),
@@ -80,6 +83,10 @@ export default async function ProdutosPage({
     produtos = produtos.filter(p => Number(p.quantidade ?? 1) > 0);
   } else if (saldo === "sem") {
     produtos = produtos.filter(p => Number(p.quantidade ?? 1) <= 0);
+  }
+
+  if (statusFiltro) {
+    produtos = produtos.filter(p => (p.status ?? "") === statusFiltro);
   }
 
   const totalQtd    = produtos.reduce((s, p) => s + Number(p.quantidade ?? 1), 0);
@@ -194,6 +201,14 @@ export default async function ProdutosPage({
                 triagemParam={triagemParam}
                 categoriaParam={categoriaParam}
                 qParam={q}
+                statusParam={statusFiltro}
+              />
+              <StatusFilter
+                current={statusFiltro}
+                triagemParam={triagemParam}
+                categoriaParam={categoriaParam}
+                qParam={q}
+                saldoParam={saldo}
               />
             </div>
           </div>

@@ -6,6 +6,7 @@ import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import type { Triagem } from "@/app/api/triagens/route";
 import { CATEGORIAS } from "@/lib/categorias";
 import { compressImage } from "@/lib/image";
+import { STATUS_OPTIONS, type ProdutoStatus } from "@/lib/status";
 
 const DATE = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit", month: "2-digit", year: "numeric",
@@ -28,6 +29,7 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
     descricao:        p.descricao,
     catalogo:         !!p.catalogo,
     categoria:        p.categoria ?? "",
+    status:           (p.status ?? "") as ProdutoStatus,
     foto_url:         p.foto_url ?? "",
     codigo:           p.codigo ?? "",
     endereco:         p.endereco ?? "",
@@ -97,6 +99,7 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
           preco_referencia: parse(fields.preco_referencia),
           custo:            parse(fields.custo),
           preco:            parse(fields.preco),
+          status:           fields.status || null,
           triagem_id:       fields.triagem_id,
         }),
       });
@@ -263,6 +266,29 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
+          </div>
+
+          {/* Status */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</label>
+            <div className="flex gap-2 flex-wrap">
+              {STATUS_OPTIONS.map(o => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setFields(f => ({ ...f, status: o.value }))}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl border-2 transition-all ${
+                    fields.status === o.value
+                      ? o.value === ""
+                        ? "border-gray-400 bg-gray-100 text-gray-700"
+                        : o.color
+                      : "border-gray-200 text-gray-400 hover:border-gray-400"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Código · Endereço · Quantidade */}
