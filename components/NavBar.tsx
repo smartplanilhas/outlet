@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/triagens", label: "Histórico" },
   { href: "/produtos", label: "Produtos" },
   { href: "/consulta", label: "Consulta" },
+  { href: "/vendas",   label: "Vendas" },
   { href: "/venda",    label: "PDV",  pdv: true },
 ] as const;
 

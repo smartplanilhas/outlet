@@ -4,6 +4,7 @@ import sql, { ensureTable } from "@/lib/db";
 import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import Image from "next/image";
 import NavBar from "@/components/NavBar";
+import ConsultaInput from "@/components/ConsultaInput";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const DATE = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -65,32 +66,7 @@ export default async function ConsultaPage({
       <main className="flex-1 py-8">
         <div className="max-w-4xl mx-auto px-4 flex flex-col gap-6">
 
-          {/* Campo de busca */}
-          <form method="GET" className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-gray-600">
-              Consultar por ID ou Código de barras
-            </label>
-            <div className="flex gap-3">
-              <input
-                name="q"
-                defaultValue={termo}
-                autoFocus
-                autoComplete="off"
-                placeholder="Digite o ID (#42) ou o código de barras do produto..."
-                className="flex-1 rounded-xl border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none px-4 py-3 text-base font-mono transition-colors"
-              />
-              <button type="submit"
-                className="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Buscar
-              </button>
-            </div>
-            <p className="text-xs text-gray-400">
-              Ex: <code className="bg-gray-100 px-1 rounded">42</code> para buscar pelo ID, ou <code className="bg-gray-100 px-1 rounded">7891234567890</code> para código de barras.
-            </p>
-          </form>
+          <ConsultaInput defaultValue={termo} />
 
           {/* Resultados */}
           {termo && resultados.length === 0 && (

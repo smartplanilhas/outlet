@@ -141,7 +141,10 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
 
   return (
     <>
-      <tr className="hover:bg-gray-50 transition-colors group">
+      <tr
+        className="hover:bg-gray-50 transition-colors group cursor-pointer sm:cursor-default"
+        onClick={() => setShowModal(true)}
+      >
         <td className="px-4 py-3 text-center">
           <span className="text-xs font-mono font-semibold text-gray-400">#{p.id}</span>
         </td>
@@ -211,7 +214,7 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
           <span className="text-gray-400 text-xs">{DATE.format(new Date(p.data_triagem))}</span>
         </td>
 
-        <td className="px-2 py-3">
+        <td className="px-2 py-3" onClick={e => e.stopPropagation()}>
           {/* Catálogo — sempre visível */}
           <button
             onClick={toggleCatalog}
@@ -229,8 +232,8 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
             </svg>
             {inCatalog ? "Catálogo" : "Catálogo"}
           </button>
-          {/* Demais ações — aparecem no hover */}
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Demais ações — sempre visíveis no mobile, hover no desktop */}
+          <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => setShowModal(true)}
               className="p-1.5 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
