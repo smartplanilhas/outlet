@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import type { Triagem } from "@/app/api/triagens/route";
 import { CATEGORIAS } from "@/lib/categorias";
+import { compressImage } from "@/lib/image";
 
 const DATE = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit", month: "2-digit", year: "numeric",
@@ -47,14 +48,15 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
     setUploading(true);
     setUploadError(null);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res  = await fetch("/api/upload", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro no upload.");
-      setFields(f => ({ ...f, foto_url: data.url }));
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Erro no upload.");
+      const dataUrl    = await new Promise<string>(res => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      const compressed = await compressImage(dataUrl);
+      setFields(f => ({ ...f, foto_url: compressed }));
+    } catch {
+      setUploadError("Erro ao processar a imagem.");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

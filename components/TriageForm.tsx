@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { MLItem } from "@/app/api/search/route";
 import Image from "next/image";
 import { CATEGORIAS } from "@/lib/categorias";
+import { compressImage } from "@/lib/image";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -63,7 +64,10 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setPhoto(reader.result as string);
+    reader.onload = async () => {
+      const compressed = await compressImage(reader.result as string);
+      setPhoto(compressed);
+    };
     reader.readAsDataURL(file);
   }
 
@@ -117,33 +121,12 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
     if (!description.trim()) return;
     setSaving(true); setSavedId(null); setError(null);
     try {
-      // Upload foto local (câmera/galeria) antes de salvar
-      let fotoUrl: string | undefined = undefined;
-      if (photo) {
-        if (photo.startsWith("http")) {
-          fotoUrl = photo;
-        } else {
-          try {
-            const blob = await fetch(photo).then(r => r.blob());
-            const ext  = blob.type.split("/")[1] || "jpg";
-            const file = new File([blob], `foto-${Date.now()}.${ext}`, { type: blob.type });
-            const form = new FormData();
-            form.append("file", file);
-            const up = await fetch("/api/upload", { method: "POST", body: form });
-            const ud = await up.json();
-            if (up.ok) fotoUrl = ud.url;
-          } catch {
-            // upload falhou — salva sem foto
-          }
-        }
-      }
-
       const precoNum = preco ? parseFloat(preco.replace(",", ".")) : 0;
       const custoNum = custo ? parseFloat(custo.replace(",", ".")) : 0;
       const payload  = {
         codigo:           codigo.trim() || undefined,
         descricao:        description.trim(),
-        foto_url:         fotoUrl,
+        foto_url:         photo || undefined, // data URL comprimido ou URL do ML
         codigo_ml:        mlRef?.id || undefined,
         preco_referencia: mlRef?.price ?? undefined,
         custo:            custoNum || undefined,
@@ -221,7 +204,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
               className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors bg-gray-50 hover:bg-blue-50 overflow-hidden flex items-center justify-center"
             >
               {photo ? (
-                <Image src={photo} alt="Produto" fill className="object-cover" unoptimized={photo.startsWith("http")} />
+                <Image src={photo} alt="Produto" fill className="object-cover" unoptimized />
               ) : (
                 <div className="flex flex-col items-center gap-1 text-gray-400">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
