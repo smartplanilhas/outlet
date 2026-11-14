@@ -5,25 +5,27 @@ import { useRouter } from "next/navigation";
 
 interface Props {
   defaultValue: string;
-  triagemParam?: string;
+  triagemParam?:   string;
   categoriaParam?: string;
+  saldoParam?:     string;
 }
 
-export default function ProdutosSearch({ defaultValue, triagemParam, categoriaParam }: Props) {
+export default function ProdutosSearch({ defaultValue, triagemParam, categoriaParam, saldoParam }: Props) {
   const [val, setVal] = useState(defaultValue);
   const router = useRouter();
 
   useEffect(() => {
     const t = setTimeout(() => {
       const params = new URLSearchParams();
-      if (triagemParam) params.set("triagem", triagemParam);
+      if (triagemParam)   params.set("triagem",   triagemParam);
       if (categoriaParam) params.set("categoria", categoriaParam);
-      if (val.trim()) params.set("q", val.trim());
+      if (saldoParam)     params.set("saldo",     saldoParam);
+      if (val.trim())     params.set("q",         val.trim());
       const qs = params.toString();
       router.push(`/produtos${qs ? `?${qs}` : ""}`);
     }, 400);
     return () => clearTimeout(t);
-  }, [val, triagemParam, categoriaParam, router]);
+  }, [val, triagemParam, categoriaParam, saldoParam, router]);
 
   return (
     <div className="relative w-full sm:w-72">

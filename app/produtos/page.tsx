@@ -6,6 +6,7 @@ import type { Triagem } from "@/app/api/triagens/route";
 import EditableRow from "@/components/EditableRow";
 import CategoriaFilter from "@/components/CategoriaFilter";
 import ProdutosSearch from "@/components/ProdutosSearch";
+import SaldoFilter from "@/components/SaldoFilter";
 import NavBar from "@/components/NavBar";
 
 async function getAllTriagens(): Promise<Triagem[]> {
@@ -47,31 +48,39 @@ async function getTriagem(id: number): Promise<Triagem | null> {
 export default async function ProdutosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ triagem?: string; categoria?: string; q?: string }>;
+  searchParams: Promise<{ triagem?: string; categoria?: string; q?: string; saldo?: string }>;
 }) {
-  const { triagem: triagemParam, categoria: categoriaParam, q: qParam } = await searchParams;
+  const { triagem: triagemParam, categoria: categoriaParam, q: qParam, saldo: saldoParam } = await searchParams;
   const triagemId  = triagemParam ? parseInt(triagemParam) : undefined;
   const categoria  = categoriaParam ?? "";
   const q          = qParam?.trim() ?? "";
+  const saldo      = (["com", "sem"].includes(saldoParam ?? "") ? saldoParam : "") as "" | "com" | "sem";
+
   const [produtosRaw, triagem, todasTriagens] = await Promise.all([
     getProdutos(triagemId, categoria || undefined),
     triagemId ? getTriagem(triagemId) : Promise.resolve(null),
     getAllTriagens(),
   ]);
 
-  const produtos = q
-    ? produtosRaw.filter(p => {
-        const lower = q.toLowerCase();
-        return (
-          p.descricao.toLowerCase().includes(lower) ||
-          (p.codigo ?? "").toLowerCase().includes(lower) ||
-          (p.codigo_ml ?? "").toLowerCase().includes(lower) ||
-          (p.endereco ?? "").toLowerCase().includes(lower) ||
-          (p.categoria ?? "").toLowerCase().includes(lower) ||
-          String(p.id) === q
-        );
-      })
-    : produtosRaw;
+  let produtos = produtosRaw;
+
+  if (q) {
+    const lower = q.toLowerCase();
+    produtos = produtos.filter(p =>
+      p.descricao.toLowerCase().includes(lower) ||
+      (p.codigo ?? "").toLowerCase().includes(lower) ||
+      (p.codigo_ml ?? "").toLowerCase().includes(lower) ||
+      (p.endereco ?? "").toLowerCase().includes(lower) ||
+      (p.categoria ?? "").toLowerCase().includes(lower) ||
+      String(p.id) === q
+    );
+  }
+
+  if (saldo === "com") {
+    produtos = produtos.filter(p => Number(p.quantidade ?? 1) > 0);
+  } else if (saldo === "sem") {
+    produtos = produtos.filter(p => Number(p.quantidade ?? 1) <= 0);
+  }
 
   const totalQtd    = produtos.reduce((s, p) => s + Number(p.quantidade ?? 1), 0);
   const totalRefML  = produtos.reduce((s, p) => s + Number(p.preco_referencia ?? 0) * Number(p.quantidade ?? 1), 0);
@@ -173,11 +182,20 @@ export default async function ProdutosPage({
                 + Nova triagem
               </a>
             </div>
-            <ProdutosSearch
-              defaultValue={q}
-              triagemParam={triagemParam}
-              categoriaParam={categoriaParam}
-            />
+            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+              <ProdutosSearch
+                defaultValue={q}
+                triagemParam={triagemParam}
+                categoriaParam={categoriaParam}
+                saldoParam={saldo}
+              />
+              <SaldoFilter
+                current={saldo}
+                triagemParam={triagemParam}
+                categoriaParam={categoriaParam}
+                qParam={q}
+              />
+            </div>
           </div>
 
           {/* Cards de totais (somente quando não há banner de triagem) */}
