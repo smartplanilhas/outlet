@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import sql, { ensureTable } from "@/lib/db";
 import ContinuarButton from "@/components/ContinuarButton";
 import TriagemActions from "@/components/TriagemActions";
+import NavBar from "@/components/NavBar";
 
 const BRL  = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const DATE = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -62,11 +63,7 @@ export default async function TriagensPage() {
             </div>
           </div>
           <nav className="flex items-center gap-1">
-            <a href="/"         className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Triagem</a>
-            <a href="/triagens" className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">Histórico</a>
-            <a href="/produtos" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Produtos</a>
-            <a href="/consulta" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Consulta</a>
-            <a href="/venda"    className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors font-semibold">PDV</a>
+            <NavBar active="/triagens" />
           </nav>
         </div>
       </header>

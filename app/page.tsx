@@ -5,6 +5,7 @@ import TriageForm from "@/components/TriageForm";
 import TriagemPicker from "@/components/TriagemPicker";
 import TriagemHeader from "@/components/TriagemHeader";
 import TriagemSwitcher from "@/components/TriagemSwitcher";
+import NavBar from "@/components/NavBar";
 import type { Triagem } from "@/app/api/triagens/route";
 
 export default function Home() {
@@ -84,21 +85,12 @@ export default function Home() {
               <p className="text-xs text-gray-400 leading-tight">Triagem de produtos</p>
             </div>
           </div>
-          <nav className="flex items-center gap-1">
-            {triagemAtiva && hydrated ? (
-              <TriagemSwitcher
-                current={triagemAtiva}
-                onSelect={handleStart}
-                onNew={handlePausar}
-              />
-            ) : (
-              <a href="/" className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">Triagem</a>
-            )}
-            <a href="/triagens" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Histórico</a>
-            <a href="/produtos" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Produtos</a>
-            <a href="/consulta" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Consulta</a>
-            <a href="/venda"    className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors font-semibold">PDV</a>
-          </nav>
+          <NavBar
+            active="/"
+            triagemSlot={triagemAtiva && hydrated ? (
+              <TriagemSwitcher current={triagemAtiva} onSelect={handleStart} onNew={handlePausar} />
+            ) : undefined}
+          />
         </div>
       </header>
 

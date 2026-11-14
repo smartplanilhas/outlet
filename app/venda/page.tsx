@@ -1,4 +1,5 @@
 import PDV from "@/components/PDV";
+import NavBar from "@/components/NavBar";
 
 export default function VendaPage() {
   return (
@@ -20,11 +21,7 @@ export default function VendaPage() {
             </div>
           </div>
           <nav className="flex items-center gap-1">
-            <a href="/"         className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Triagem</a>
-            <a href="/triagens" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Histórico</a>
-            <a href="/produtos"  className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Produtos</a>
-            <a href="/consulta"  className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Consulta</a>
-            <a href="/venda"     className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg">PDV</a>
+            <NavBar active="/venda" />
           </nav>
         </div>
       </header>
