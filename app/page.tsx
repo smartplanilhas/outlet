@@ -94,6 +94,7 @@ export default function Home() {
             ) : (
               <a href="/" className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">Triagem</a>
             )}
+            <a href="/triagens" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Histórico</a>
             <a href="/produtos" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Produtos</a>
             <a href="/consulta" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Consulta</a>
           </nav>
