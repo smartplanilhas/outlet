@@ -173,15 +173,36 @@ export default async function CatalogoPage({
                     </p>
 
                     {/* Preços */}
-                    <div>
-                      {p.preco_referencia && Number(p.preco_referencia) > Number(p.preco) && (
-                        <p className="text-xs text-gray-400 line-through">
-                          {BRL.format(Number(p.preco_referencia))}
+                    <div className="flex flex-col gap-1">
+                      {p.preco_referencia && Number(p.preco_referencia) > Number(p.preco) ? (
+                        <>
+                          {/* Referência ML */}
+                          <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1">
+                            <span className="text-xs text-gray-400 font-medium shrink-0">Mercado Livre</span>
+                            <span className="text-xs text-gray-400 line-through font-mono">
+                              {BRL.format(Number(p.preco_referencia))}
+                            </span>
+                          </div>
+                          {/* Preço outlet */}
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#e31e24" }}>
+                              Nosso preço
+                            </p>
+                            <p className="text-xl font-black leading-tight" style={{ color: "#e31e24" }}>
+                              {BRL.format(Number(p.preco))}
+                            </p>
+                            {pct && (
+                              <p className="text-xs font-bold text-green-600">
+                                {pct}% mais barato 🏷️
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-xl font-black" style={{ color: "#e31e24" }}>
+                          {BRL.format(Number(p.preco))}
                         </p>
                       )}
-                      <p className="text-xl font-black" style={{ color: "#e31e24" }}>
-                        {BRL.format(Number(p.preco))}
-                      </p>
                     </div>
 
                     {/* Botão WhatsApp */}
