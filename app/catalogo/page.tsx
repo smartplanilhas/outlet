@@ -133,7 +133,7 @@ export default async function CatalogoPage({
                   className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow flex flex-col"
                 >
                   {/* Foto */}
-                  <div className="relative bg-gray-100 aspect-square">
+                  <div className="relative bg-white aspect-square">
                     {p.foto_url ? (
                       <Image
                         src={p.foto_url}
