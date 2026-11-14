@@ -95,3 +95,17 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
+export async function DELETE(req: NextRequest) {
+  try {
+    const id = req.nextUrl.searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "ID obrigatório." }, { status: 400 });
+    await ensureTable();
+    // ON DELETE SET NULL garante que os produtos ficam com triagem_id = NULL
+    await sql`DELETE FROM triagens WHERE id = ${parseInt(id)}`;
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("[triagens DELETE]", e);
+    return NextResponse.json({ error: "Erro ao apagar." }, { status: 500 });
+  }
+}
+

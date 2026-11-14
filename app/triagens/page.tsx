@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import sql, { ensureTable } from "@/lib/db";
 import ContinuarButton from "@/components/ContinuarButton";
+import TriagemActions from "@/components/TriagemActions";
 
 const BRL  = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const DATE = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -144,7 +145,7 @@ export default async function TriagensPage() {
                       t.status === "ativa" ? "border-blue-200" : "border-gray-200"
                     }`}
                   >
-                    <div className="p-5 flex flex-col sm:flex-row gap-4">
+                    <div className="p-5 flex flex-col sm:flex-row gap-4 items-start">
 
                       {/* Info principal */}
                       <div className="flex-1 min-w-0 flex flex-col gap-2">
@@ -225,6 +226,11 @@ export default async function TriagensPage() {
                           </a>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Rodapé com ações */}
+                    <div className="border-t border-gray-100 px-5 py-2.5 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
+                      <TriagemActions id={t.id} nome={t.nome} />
                     </div>
                   </div>
                 );
