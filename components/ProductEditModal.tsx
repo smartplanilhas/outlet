@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import type { Triagem } from "@/app/api/triagens/route";
@@ -27,6 +27,7 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
     descricao:        p.descricao,
     catalogo:         !!p.catalogo,
     categoria:        p.categoria ?? "",
+    foto_url:         p.foto_url ?? "",
     codigo:           p.codigo ?? "",
     endereco:         p.endereco ?? "",
     quantidade:       String(p.quantidade ?? 1),
@@ -35,7 +36,30 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
     preco:            fmt(p.preco as unknown as number),
     triagem_id:       p.triagem_id as number | null,
   });
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res  = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro no upload.");
+      setFields(f => ({ ...f, foto_url: data.url }));
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Erro no upload.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -63,6 +87,7 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
         body: JSON.stringify({
           descricao:        fields.descricao.trim(),
           catalogo:         fields.catalogo,
+          foto_url:         fields.foto_url || null,
           categoria:        fields.categoria || null,
           codigo:           fields.codigo || null,
           endereco:         fields.endereco || null,
@@ -113,11 +138,58 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
 
           {/* Foto + Descrição */}
           <div className="flex gap-4">
-            {p.foto_url && (
-              <div className="relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
-                <Image src={p.foto_url} alt={p.descricao} fill className="object-contain p-1" unoptimized />
-              </div>
-            )}
+            {/* Área de foto com upload */}
+            <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors flex items-center justify-center group"
+                title="Clique para tirar foto ou fazer upload"
+              >
+                {fields.foto_url ? (
+                  <>
+                    <Image src={fields.foto_url} alt="foto" fill className="object-contain p-1" unoptimized />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                  </>
+                ) : uploading ? (
+                  <svg className="w-6 h-6 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-gray-400">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="text-[9px] text-center leading-tight">Foto</span>
+                  </div>
+                )}
+              </button>
+              {fields.foto_url && !uploading && (
+                <button
+                  type="button"
+                  onClick={() => setFields(f => ({ ...f, foto_url: "" }))}
+                  className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                >
+                  Remover
+                </button>
+              )}
+              {uploadError && <p className="text-xs text-red-500 text-center">{uploadError}</p>}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoFile}
+              />
+            </div>
             <div className="flex-1 flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Descrição</label>
               <textarea

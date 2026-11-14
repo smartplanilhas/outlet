@@ -94,6 +94,9 @@ export async function PATCH(req: NextRequest) {
     if ("catalogo" in body) {
       await sql`UPDATE produtos_triagem SET catalogo = ${body.catalogo ?? false} WHERE id = ${parseInt(id)}`;
     }
+    if ("foto_url" in body) {
+      await sql`UPDATE produtos_triagem SET foto_url = ${body.foto_url ?? null} WHERE id = ${parseInt(id)}`;
+    }
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[triagem PATCH]", e);

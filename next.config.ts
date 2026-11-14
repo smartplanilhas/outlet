@@ -5,8 +5,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.mlstatic.com" },
-      { protocol: "http", hostname: "**.mlstatic.com" },
+      { protocol: "http",  hostname: "**.mlstatic.com" },
       { protocol: "https", hostname: "http2.mlstatic.com" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
   turbopack: {
