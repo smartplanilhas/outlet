@@ -22,4 +22,14 @@ export async function ensureTable() {
   await sql`ALTER TABLE produtos_triagem ALTER COLUMN codigo_ml TYPE TEXT`;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS quantidade INTEGER DEFAULT 1`;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS endereco VARCHAR(100)`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS triagens (
+      id          SERIAL PRIMARY KEY,
+      nome        VARCHAR(200),
+      status      VARCHAR(20) DEFAULT 'ativa',
+      data_inicio TIMESTAMPTZ DEFAULT NOW(),
+      data_fim    TIMESTAMPTZ
+    )
+  `;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS triagem_id INTEGER REFERENCES triagens(id) ON DELETE SET NULL`;
 }

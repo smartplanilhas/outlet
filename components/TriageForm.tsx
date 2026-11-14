@@ -20,7 +20,12 @@ interface MLRef {
   thumbnail: string;
 }
 
-export default function TriageForm() {
+interface Props {
+  triagemId?: number;
+  onProductSaved?: (preco: number, custo: number, qty: number) => void;
+}
+
+export default function TriageForm({ triagemId, onProductSaved }: Props) {
   // campos do produto
   const [codigo, setCodigo] = useState("");
   const [description, setDescription] = useState("");
@@ -125,14 +130,17 @@ export default function TriageForm() {
     setSavedId(null);
     setError(null);
     try {
+      const precoNum = preco ? parseFloat(preco.replace(",", ".")) : 0;
+      const custoNum = custo ? parseFloat(custo.replace(",", ".")) : 0;
       const payload = {
         codigo: codigo.trim() || undefined,
         descricao: description.trim(),
         foto_url: photo?.startsWith("http") ? photo : undefined,
         codigo_ml: mlRef?.id || undefined,
         preco_referencia: mlRef?.price ?? undefined,
-        custo: custo ? parseFloat(custo.replace(",", ".")) : undefined,
-        preco: preco ? parseFloat(preco.replace(",", ".")) : undefined,
+        custo: custoNum || undefined,
+        preco: precoNum || undefined,
+        triagem_id: triagemId ?? undefined,
       };
       const res = await fetch("/api/triagem", {
         method: "POST",
@@ -142,6 +150,7 @@ export default function TriageForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setSavedId(data.id);
+      onProductSaved?.(precoNum, custoNum, 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao salvar.");
     } finally {

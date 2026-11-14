@@ -13,6 +13,7 @@ export interface ProdutoTriagem {
   quantidade: number | null;
   endereco: string | null;
   data_triagem: string;
+  triagem_id: number | null;
 }
 
 export interface ProdutoPayload {
@@ -25,6 +26,7 @@ export interface ProdutoPayload {
   preco?: number | null;
   quantidade?: number | null;
   endereco?: string | null;
+  triagem_id?: number | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const rows = await sql`
       INSERT INTO produtos_triagem
-        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco)
+        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco, triagem_id)
       VALUES
         (${body.codigo?.trim() || null},
          ${body.descricao.trim()},
@@ -48,7 +50,8 @@ export async function POST(req: NextRequest) {
          ${body.custo ?? null},
          ${body.preco ?? null},
          ${body.quantidade ?? 1},
-         ${body.endereco?.trim() || null})
+         ${body.endereco?.trim() || null},
+         ${body.triagem_id ?? null})
       RETURNING id, data_triagem
     `;
 
@@ -65,17 +68,24 @@ export async function PATCH(req: NextRequest) {
     if (!id) return NextResponse.json({ error: "ID obrigatório." }, { status: 400 });
     const body: Partial<ProdutoPayload> = await req.json();
     await ensureTable();
-    await sql`
-      UPDATE produtos_triagem SET
-        descricao        = COALESCE(${body.descricao ?? null}, descricao),
-        codigo           = ${body.codigo ?? null},
-        preco_referencia = ${body.preco_referencia ?? null},
-        custo            = ${body.custo ?? null},
-        preco            = ${body.preco ?? null},
-        quantidade       = ${body.quantidade ?? null},
-        endereco         = ${body.endereco?.trim() || null}
-      WHERE id = ${parseInt(id)}
-    `;
+    // Full-field update — only when descricao is present (EditableRow full save)
+    if ("descricao" in body) {
+      await sql`
+        UPDATE produtos_triagem SET
+          descricao        = COALESCE(${body.descricao ?? null}, descricao),
+          codigo           = ${body.codigo ?? null},
+          preco_referencia = ${body.preco_referencia ?? null},
+          custo            = ${body.custo ?? null},
+          preco            = ${body.preco ?? null},
+          quantidade       = ${body.quantidade ?? null},
+          endereco         = ${body.endereco?.trim() || null}
+        WHERE id = ${parseInt(id)}
+      `;
+    }
+    // Triagem assignment — handled separately so a null means "unassign"
+    if ("triagem_id" in body) {
+      await sql`UPDATE produtos_triagem SET triagem_id = ${body.triagem_id ?? null} WHERE id = ${parseInt(id)}`;
+    }
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[triagem PATCH]", e);
@@ -96,12 +106,13 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await ensureTable();
-    const rows = await sql`
-      SELECT * FROM produtos_triagem ORDER BY data_triagem DESC LIMIT 200
-    `;
+    const triagemId = req.nextUrl.searchParams.get("triagem_id");
+    const rows = triagemId
+      ? await sql`SELECT * FROM produtos_triagem WHERE triagem_id = ${parseInt(triagemId)} ORDER BY data_triagem DESC LIMIT 200`
+      : await sql`SELECT * FROM produtos_triagem ORDER BY data_triagem DESC LIMIT 200`;
     return NextResponse.json(rows);
   } catch (e) {
     console.error("[triagem GET]", e);

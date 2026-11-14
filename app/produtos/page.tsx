@@ -2,23 +2,55 @@ export const dynamic = "force-dynamic";
 
 import sql, { ensureTable } from "@/lib/db";
 import type { ProdutoTriagem } from "@/app/api/triagem/route";
+import type { Triagem } from "@/app/api/triagens/route";
 import EditableRow from "@/components/EditableRow";
 
-const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+async function getAllTriagens(): Promise<Triagem[]> {
+  const rows = await sql`SELECT * FROM triagens ORDER BY data_inicio DESC`;
+  return rows as Triagem[];
+}
+
+const BRL  = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const DATE = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-async function getProdutos(): Promise<ProdutoTriagem[]> {
+async function getProdutos(triagemId?: number): Promise<ProdutoTriagem[]> {
   await ensureTable();
-  const rows = await sql`SELECT * FROM produtos_triagem ORDER BY data_triagem DESC LIMIT 200`;
+  const rows = triagemId
+    ? await sql`SELECT * FROM produtos_triagem WHERE triagem_id = ${triagemId} ORDER BY data_triagem DESC LIMIT 500`
+    : await sql`SELECT * FROM produtos_triagem ORDER BY data_triagem DESC LIMIT 200`;
   return rows as ProdutoTriagem[];
 }
 
-export default async function ProdutosPage() {
-  const produtos = await getProdutos();
+async function getTriagem(id: number): Promise<Triagem | null> {
+  const rows = await sql`
+    SELECT t.*,
+      COUNT(p.id)::int AS total_produtos,
+      COALESCE(SUM(p.preco  * p.quantidade), 0) AS total_outlet,
+      COALESCE(SUM(p.custo  * p.quantidade), 0) AS total_custo
+    FROM triagens t
+    LEFT JOIN produtos_triagem p ON p.triagem_id = t.id
+    WHERE t.id = ${id}
+    GROUP BY t.id
+  `;
+  return (rows[0] as Triagem) ?? null;
+}
 
-  const totalQtd = produtos.reduce((s, p) => s + Number(p.quantidade ?? 1), 0);
-  const totalRefML = produtos.reduce((s, p) => s + Number(p.preco_referencia ?? 0) * Number(p.quantidade ?? 1), 0);
-  const totalCusto = produtos.reduce((s, p) => s + Number(p.custo ?? 0) * Number(p.quantidade ?? 1), 0);
+export default async function ProdutosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ triagem?: string }>;
+}) {
+  const { triagem: triagemParam } = await searchParams;
+  const triagemId  = triagemParam ? parseInt(triagemParam) : undefined;
+  const [produtos, triagem, todasTriagens] = await Promise.all([
+    getProdutos(triagemId),
+    triagemId ? getTriagem(triagemId) : Promise.resolve(null),
+    getAllTriagens(),
+  ]);
+
+  const totalQtd    = produtos.reduce((s, p) => s + Number(p.quantidade ?? 1), 0);
+  const totalRefML  = produtos.reduce((s, p) => s + Number(p.preco_referencia ?? 0) * Number(p.quantidade ?? 1), 0);
+  const totalCusto  = produtos.reduce((s, p) => s + Number(p.custo ?? 0) * Number(p.quantidade ?? 1), 0);
   const totalOutlet = produtos.reduce((s, p) => s + Number(p.preco ?? 0) * Number(p.quantidade ?? 1), 0);
 
   return (
@@ -46,36 +78,90 @@ export default async function ProdutosPage() {
 
       <main className="flex-1 py-6">
         <div className="max-w-6xl mx-auto px-4 flex flex-col gap-4">
+
+          {/* Banner de triagem finalizada */}
+          {triagem && (
+            <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${
+              triagem.status === "finalizada"
+                ? "bg-green-50 border-green-200"
+                : "bg-blue-50 border-blue-200"
+            }`}>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-gray-800">
+                    {triagem.nome || `Triagem #${triagem.id}`}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    triagem.status === "finalizada"
+                      ? "bg-green-200 text-green-800"
+                      : "bg-blue-200 text-blue-800"
+                  }`}>
+                    {triagem.status === "finalizada" ? "finalizada" : "em andamento"}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {DATE.format(new Date(triagem.data_inicio))}
+                  {triagem.data_fim && ` → ${DATE.format(new Date(triagem.data_fim))}`}
+                </p>
+              </div>
+              <div className="flex gap-6 text-right">
+                <div>
+                  <p className="text-xs text-gray-400">{totalQtd} unid.</p>
+                  <p className="text-xs text-gray-500">{produtos.length} produto{produtos.length !== 1 ? "s" : ""}</p>
+                </div>
+                {totalCusto > 0 && (
+                  <div>
+                    <p className="text-xs text-orange-500 font-semibold uppercase tracking-wide">Custo</p>
+                    <p className="font-bold text-orange-600">{BRL.format(totalCusto)}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-green-500 font-semibold uppercase tracking-wide">Outlet</p>
+                  <p className="text-2xl font-bold text-green-700">{BRL.format(totalOutlet)}</p>
+                </div>
+              </div>
+              {triagemId && (
+                <a href="/produtos" className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap self-start sm:self-center">
+                  Ver todos →
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800">{produtos.length} produto{produtos.length !== 1 ? "s" : ""} triado{produtos.length !== 1 ? "s" : ""}</h2>
+            <h2 className="text-lg font-semibold text-gray-800">
+              {triagemId ? `${produtos.length} produto${produtos.length !== 1 ? "s" : ""} nesta triagem` : `${produtos.length} produto${produtos.length !== 1 ? "s" : ""} triado${produtos.length !== 1 ? "s" : ""}`}
+            </h2>
             <a href="/" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors">
               + Nova triagem
             </a>
           </div>
 
-          {/* Cards de totais */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col gap-1">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Estoque</span>
-              <span className="text-3xl font-bold text-gray-800">{totalQtd}</span>
-              <span className="text-xs text-gray-400">{produtos.length} produto{produtos.length !== 1 ? "s" : ""} · {totalQtd} unidade{totalQtd !== 1 ? "s" : ""}</span>
+          {/* Cards de totais (somente quando não há banner de triagem) */}
+          {!triagem && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col gap-1">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Estoque</span>
+                <span className="text-3xl font-bold text-gray-800">{totalQtd}</span>
+                <span className="text-xs text-gray-400">{produtos.length} produto{produtos.length !== 1 ? "s" : ""} · {totalQtd} unidade{totalQtd !== 1 ? "s" : ""}</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-5 flex flex-col gap-1">
+                <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Ref. Mercado Livre</span>
+                <span className="text-2xl font-bold text-blue-700">{BRL.format(totalRefML)}</span>
+                <span className="text-xs text-gray-400">valor de mercado</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-orange-100 shadow-sm p-5 flex flex-col gap-1">
+                <span className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Custo total</span>
+                <span className="text-2xl font-bold text-orange-600">{BRL.format(totalCusto)}</span>
+                <span className="text-xs text-gray-400">quanto custou</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-green-100 shadow-sm p-5 flex flex-col gap-1">
+                <span className="text-xs font-semibold text-green-500 uppercase tracking-wide">Preço outlet</span>
+                <span className="text-2xl font-bold text-green-700">{BRL.format(totalOutlet)}</span>
+                <span className="text-xs text-gray-400">valor a receber</span>
+              </div>
             </div>
-            <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-5 flex flex-col gap-1">
-              <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Ref. Mercado Livre</span>
-              <span className="text-2xl font-bold text-blue-700">{BRL.format(totalRefML)}</span>
-              <span className="text-xs text-gray-400">valor de mercado</span>
-            </div>
-            <div className="bg-white rounded-2xl border border-orange-100 shadow-sm p-5 flex flex-col gap-1">
-              <span className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Custo total</span>
-              <span className="text-2xl font-bold text-orange-600">{BRL.format(totalCusto)}</span>
-              <span className="text-xs text-gray-400">quanto custou</span>
-            </div>
-            <div className="bg-white rounded-2xl border border-green-100 shadow-sm p-5 flex flex-col gap-1">
-              <span className="text-xs font-semibold text-green-500 uppercase tracking-wide">Preço outlet</span>
-              <span className="text-2xl font-bold text-green-700">{BRL.format(totalOutlet)}</span>
-              <span className="text-xs text-gray-400">valor a receber</span>
-            </div>
-          </div>
+          )}
 
           {produtos.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
@@ -103,7 +189,7 @@ export default async function ProdutosPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {produtos.map((p) => (
-                    <EditableRow key={p.id} p={p} />
+                    <EditableRow key={p.id} p={p} triagens={todasTriagens} />
                   ))}
                 </tbody>
               </table>
