@@ -191,11 +191,6 @@ export default async function CatalogoPage({
                             <p className="text-xl font-black leading-tight" style={{ color: "#e31e24" }}>
                               {BRL.format(Number(p.preco))}
                             </p>
-                            {pct && (
-                              <p className="text-xs font-bold text-green-600">
-                                {pct}% mais barato 🏷️
-                              </p>
-                            )}
                           </div>
                         </>
                       ) : (
