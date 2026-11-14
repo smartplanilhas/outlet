@@ -120,6 +120,40 @@ async function fetchFromPage(id: string): Promise<MLProduct | null> {
   }
 }
 
+async function fetchFromItem(id: string, token?: string | null): Promise<MLProduct | null> {
+  const headers: HeadersInit = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+  try {
+    const res = await fetch(`https://api.mercadolibre.com/items/${id}`, {
+      headers,
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.title) return null;
+
+    const pictures: string[] = (data.pictures ?? [])
+      .map((p: { url?: string; secure_url?: string }) => p.secure_url ?? p.url ?? "")
+      .filter(Boolean);
+
+    return {
+      id: data.id,
+      name: data.title,
+      thumbnail: pictures[0] ?? data.thumbnail ?? "",
+      pictures,
+      attributes: (data.attributes ?? []).map(
+        (a: { id: string; name: string; value_name?: string }) => ({
+          id: a.id, name: a.name, value: a.value_name ?? "",
+        })
+      ),
+      price: data.price ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchFromCatalog(id: string, token: string): Promise<MLProduct | null> {
   const res = await fetch(`https://api.mercadolibre.com/products/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -175,15 +209,19 @@ export async function GET(req: NextRequest) {
 
   const token = await getToken();
 
-  // 1. tenta catálogo (IDs de produto)
+  // 1. API pública de itens (funciona sem credenciais, cobre a maioria dos anúncios)
+  const item = await fetchFromItem(id, token);
+  if (item) return NextResponse.json(item);
+
+  // 2. API de catálogo (IDs de produto catalogado — requer token)
   if (token) {
     const catalog = await fetchFromCatalog(id, token);
     if (catalog) return NextResponse.json(catalog);
   }
 
-  // 2. fallback: scraping da página do anúncio
+  // 3. fallback: scraping da página do anúncio
   const page = await fetchFromPage(id);
   if (page) return NextResponse.json(page);
 
-  return NextResponse.json({ error: `Produto não encontrado. [product_id:${id}]` }, { status: 404 });
+  return NextResponse.json({ error: `Produto não encontrado. [id:${id}]` }, { status: 404 });
 }

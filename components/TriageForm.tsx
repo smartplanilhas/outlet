@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MLItem } from "@/app/api/search/route";
+import type { ProdutoTriagem } from "@/app/api/triagem/route";
 import Image from "next/image";
 import { CATEGORIAS } from "@/lib/categorias";
 import { compressImage } from "@/lib/image";
@@ -48,9 +49,52 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
   const [savedId, setSavedId]       = useState<number | null>(null);
   const [error, setError]           = useState<string | null>(null);
 
+  // Detecção de produto existente pelo código
+  const [existingMatch, setExistingMatch]   = useState<ProdutoTriagem | null>(null);
+  const [incrementing, setIncrementing]     = useState(false);
+  const [incrementDone, setIncrementDone]   = useState<{ qty: number; desc: string } | null>(null);
+
+  // Busca manual de produto existente
+  const [showBusca, setShowBusca]           = useState(false);
+  const [buscaQuery, setBuscaQuery]         = useState("");
+  const [buscaResults, setBuscaResults]     = useState<ProdutoTriagem[]>([]);
+  const [buscaLoading, setBuscaLoading]     = useState(false);
+
   const fileRef  = useRef<HTMLInputElement>(null);
   const formRef  = useRef<HTMLDivElement>(null);
   const precoRef = useRef<HTMLInputElement>(null);
+
+  // Busca manual por descrição/código
+  useEffect(() => {
+    setBuscaResults([]);
+    if (!buscaQuery.trim()) return;
+    const t = setTimeout(async () => {
+      setBuscaLoading(true);
+      try {
+        const res  = await fetch(`/api/triagem?busca=${encodeURIComponent(buscaQuery.trim())}`);
+        const data = await res.json();
+        setBuscaResults(Array.isArray(data) ? data : []);
+      } finally {
+        setBuscaLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [buscaQuery]);
+
+  // Busca produto existente ao digitar/escanear o código
+  useEffect(() => {
+    setExistingMatch(null);
+    setIncrementDone(null);
+    if (!codigo.trim()) return;
+    const t = setTimeout(async () => {
+      try {
+        const res  = await fetch(`/api/triagem?codigo=${encodeURIComponent(codigo.trim())}`);
+        const data = await res.json();
+        setExistingMatch(Array.isArray(data) && data.length > 0 ? data[0] : null);
+      } catch { /* silencioso */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [codigo]);
 
   function applyMlRef(ref: MLRef) {
     setMlRef(ref);
@@ -146,10 +190,31 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
     }
   }
 
+  async function handleIncrement() {
+    if (!existingMatch) return;
+    setIncrementing(true);
+    try {
+      const newQty = (existingMatch.quantidade ?? 1) + 1;
+      await fetch(`/api/triagem?id=${existingMatch.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantidade: newQty }),
+      });
+      setIncrementDone({ qty: newQty, desc: existingMatch.descricao });
+      setExistingMatch(null);
+      onProductSaved?.(Number(existingMatch.preco ?? 0), Number(existingMatch.custo ?? 0), 1);
+      setTimeout(() => { setIncrementDone(null); setCodigo(""); }, 2500);
+    } finally {
+      setIncrementing(false);
+    }
+  }
+
   function handleClear() {
     setCodigo(""); setDescription(""); setPhoto(null); setCategoria("");
     setCusto(""); setPreco(""); setMlRef(null); setResult(null);
     setError(null); setSearched(false); setSavedId(null);
+    setExistingMatch(null); setIncrementDone(null);
+    setShowBusca(false); setBuscaQuery(""); setBuscaResults([]);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -271,19 +336,164 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
         </div>
 
         {/* ── Código ── */}
-        <div className="px-4 py-3">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+        <div className="px-4 py-3 flex flex-col gap-3">
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+              </svg>
+              Código de barras
+            </label>
+            <input
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              placeholder="Leia ou digite o código..."
+              className="w-full rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none px-3 py-2.5 text-sm font-mono transition-colors"
+            />
+          </div>
+
+          {/* Produto já existe — opção de incrementar */}
+          {existingMatch && !incrementDone && (
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 flex flex-col gap-2.5">
+              <div className="flex items-start gap-3">
+                {existingMatch.foto_url && (
+                  <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-white flex-shrink-0 border border-amber-200">
+                    <Image src={existingMatch.foto_url} alt="" fill className="object-contain p-0.5" unoptimized />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">Produto já cadastrado</p>
+                  <p className="text-sm font-medium text-gray-800 leading-snug mt-0.5 line-clamp-2">
+                    {existingMatch.descricao}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    <span className="font-mono">#{existingMatch.id}</span>
+                    {" · estoque atual: "}
+                    <strong>{existingMatch.quantidade ?? 1}</strong> unid.
+                    {existingMatch.preco ? ` · ${BRL.format(Number(existingMatch.preco))}` : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  disabled={incrementing}
+                  className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  {incrementing ? "..." : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
+                      </svg>
+                      +1 → {(existingMatch.quantidade ?? 1) + 1} em estoque
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExistingMatch(null)}
+                  className="px-3 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Criar novo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Confirmação de incremento */}
+          {incrementDone && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
+              <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-green-700">Quantidade atualizada!</p>
+                <p className="text-xs text-green-600 truncate">
+                  {incrementDone.desc} — agora {incrementDone.qty} unid. em estoque
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Buscar produto existente ── */}
+        <div className="px-4 py-3 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={() => { setShowBusca(v => !v); setBuscaQuery(""); setBuscaResults([]); setExistingMatch(null); }}
+            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+          >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
-            Código de barras
-          </label>
-          <input
-            value={codigo}
-            onChange={(e) => setCodigo(e.target.value)}
-            placeholder="Leia ou digite o código..."
-            className="w-full rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none px-3 py-2.5 text-sm font-mono transition-colors"
-          />
+            {showBusca ? "Fechar busca" : "Buscar produto existente"}
+          </button>
+
+          {showBusca && (
+            <div className="mt-2.5 flex flex-col gap-2">
+              <div className="relative">
+                <input
+                  autoFocus
+                  value={buscaQuery}
+                  onChange={e => setBuscaQuery(e.target.value)}
+                  placeholder="Nome, código ou ID do produto..."
+                  className="w-full rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none pl-9 pr-3 py-2.5 text-sm transition-colors"
+                />
+                <svg className="w-4 h-4 text-blue-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                {buscaLoading && (
+                  <svg className="w-4 h-4 animate-spin text-blue-400 absolute right-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                )}
+              </div>
+
+              {buscaQuery && !buscaLoading && buscaResults.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-2">Nenhum produto encontrado.</p>
+              )}
+
+              {buscaResults.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setExistingMatch(p);
+                    setShowBusca(false);
+                    setBuscaQuery("");
+                    setBuscaResults([]);
+                  }}
+                  className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-left"
+                >
+                  {p.foto_url ? (
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      <Image src={p.foto_url} alt="" fill className="object-contain p-0.5" unoptimized />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 flex-shrink-0">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 leading-snug line-clamp-1">{p.descricao}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      <span className="font-mono">#{p.id}</span>
+                      {p.codigo && <span className="ml-1 font-mono">{p.codigo}</span>}
+                      {" · "}{p.quantidade ?? 1} em estoque
+                      {p.preco ? ` · ${BRL.format(Number(p.preco))}` : ""}
+                    </p>
+                  </div>
+                  <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Preços ── */}

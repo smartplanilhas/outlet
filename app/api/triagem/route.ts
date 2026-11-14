@@ -97,6 +97,9 @@ export async function PATCH(req: NextRequest) {
     if ("foto_url" in body) {
       await sql`UPDATE produtos_triagem SET foto_url = ${body.foto_url ?? null} WHERE id = ${parseInt(id)}`;
     }
+    if ("quantidade" in body && !("descricao" in body)) {
+      await sql`UPDATE produtos_triagem SET quantidade = ${body.quantidade ?? 1} WHERE id = ${parseInt(id)}`;
+    }
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[triagem PATCH]", e);
@@ -122,6 +125,35 @@ export async function GET(req: NextRequest) {
     await ensureTable();
     const triagemId = req.nextUrl.searchParams.get("triagem_id");
     const q         = req.nextUrl.searchParams.get("q");
+
+    // Busca livre por descrição/código — para localizar produto existente
+    const busca = req.nextUrl.searchParams.get("busca");
+    if (busca) {
+      const term = busca.trim();
+      const rows = await sql`
+        SELECT * FROM produtos_triagem
+        WHERE (
+          LOWER(codigo) = LOWER(${term})
+          OR id = ${parseInt(term) || -1}
+          OR descricao ILIKE ${'%' + term + '%'}
+        )
+        ORDER BY data_triagem DESC
+        LIMIT 15
+      `;
+      return NextResponse.json(rows);
+    }
+
+    // Busca por código exato — para detectar produto já cadastrado na triagem
+    const codigoExato = req.nextUrl.searchParams.get("codigo");
+    if (codigoExato) {
+      const rows = await sql`
+        SELECT * FROM produtos_triagem
+        WHERE LOWER(codigo) = LOWER(${codigoExato.trim()})
+        ORDER BY data_triagem DESC
+        LIMIT 1
+      `;
+      return NextResponse.json(rows);
+    }
 
     // Busca para o PDV: por código exato, ID ou descrição parcial
     if (q) {
