@@ -25,6 +25,8 @@ interface SaleResult {
   forma_pagamento: string;
   valor_pago: number;
   troco: number;
+  origem_venda: string | null;
+  conta: string | null;
   itens: CartItem[];
 }
 
@@ -83,6 +85,8 @@ export default function PDV() {
   const [payment, setPayment]     = useState<PayMethod | "">("");
   const [valorPago, setValorPago] = useState("");
   const [showTroco, setShowTroco] = useState(false);
+  const [origem, setOrigem]       = useState("");
+  const [conta, setConta]         = useState("");
 
   // Finalização
   const [finalizing, setFinalizing] = useState(false);
@@ -192,6 +196,8 @@ export default function PDV() {
           forma_pagamento: payment,
           valor_pago:      showTroco && payment === "dinheiro" ? paid : total,
           troco:           showTroco && payment === "dinheiro" ? troco : 0,
+          origem_venda:    origem || null,
+          conta:           conta || null,
           itens: cart.map(i => ({
             produto_id:     i.produtoId,
             descricao:      i.descricao,
@@ -205,8 +211,10 @@ export default function PDV() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setSale({ id: data.id, subtotal, desconto: discAmt, total, forma_pagamento: payment,
-                valor_pago: showTroco && payment === "dinheiro" ? paid : total,
-                troco:      showTroco && payment === "dinheiro" ? troco : 0,
+                valor_pago:   showTroco && payment === "dinheiro" ? paid : total,
+                troco:        showTroco && payment === "dinheiro" ? troco : 0,
+                origem_venda: origem || null,
+                conta:        conta || null,
                 itens: [...cart] });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao finalizar.");
@@ -217,7 +225,8 @@ export default function PDV() {
 
   function handleNewSale() {
     setCart([]); setDiscInput(""); setDiscType("%"); setValorCombinado("");
-    setPayment(""); setValorPago(""); setShowTroco(false); setSale(null); setError(null);
+    setPayment(""); setValorPago(""); setShowTroco(false); setOrigem(""); setConta("");
+    setSale(null); setError(null);
   }
 
   // ── Render: receipt após venda ─────────────────────────────────────────────
@@ -270,6 +279,16 @@ export default function PDV() {
             {sale.troco > 0 && (
               <div className="flex justify-between text-green-600 font-semibold">
                 <span>Troco</span><span>{BRL.format(sale.troco)}</span>
+              </div>
+            )}
+            {sale.origem_venda && (
+              <div className="flex justify-between text-gray-500 text-xs">
+                <span>Origem</span><span className="font-medium">{sale.origem_venda}</span>
+              </div>
+            )}
+            {sale.conta && (
+              <div className="flex justify-between text-gray-500 text-xs">
+                <span>Conta</span><span className="font-bold text-gray-700">{sale.conta}</span>
               </div>
             )}
           </div>
@@ -595,6 +614,52 @@ export default function PDV() {
                 </div>
               </div>
             )}
+
+            {/* Origem da venda */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Origem da venda</label>
+              <div className="grid grid-cols-4 gap-2">
+                {(["Loja física", "WhatsApp", "Instagram", "Grupo"] as const).map(o => (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() => setOrigem(prev => prev === o ? "" : o)}
+                    className={`py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
+                      origem === o
+                        ? "border-purple-500 bg-purple-50 text-purple-700"
+                        : "border-gray-200 text-gray-500 hover:border-purple-300"
+                    }`}
+                  >
+                    {o === "Loja física" && "🏪 "}
+                    {o === "WhatsApp"   && "💬 "}
+                    {o === "Instagram"  && "📸 "}
+                    {o === "Grupo"      && "👥 "}
+                    {o}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Conta */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Conta</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["FLP", "ADR"] as const).map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setConta(prev => prev === c ? "" : c)}
+                    className={`py-2.5 rounded-xl border-2 text-sm font-black transition-all ${
+                      conta === c
+                        ? "border-gray-700 bg-gray-800 text-white"
+                        : "border-gray-200 text-gray-500 hover:border-gray-400"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Erros */}
             {error && (

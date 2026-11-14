@@ -13,13 +13,15 @@ interface ItemPayload {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { subtotal, desconto, total, forma_pagamento, valor_pago, troco, itens } = body as {
+    const { subtotal, desconto, total, forma_pagamento, valor_pago, troco, origem_venda, conta, itens } = body as {
       subtotal: number;
       desconto: number;
       total: number;
       forma_pagamento: string;
       valor_pago: number;
       troco: number;
+      origem_venda: string | null;
+      conta: string | null;
       itens: ItemPayload[];
     };
 
@@ -28,8 +30,8 @@ export async function POST(req: NextRequest) {
     await ensureTable();
 
     const [venda] = await sql`
-      INSERT INTO vendas (subtotal, desconto, total, forma_pagamento, valor_pago, troco)
-      VALUES (${subtotal}, ${desconto}, ${total}, ${forma_pagamento}, ${valor_pago}, ${troco})
+      INSERT INTO vendas (subtotal, desconto, total, forma_pagamento, valor_pago, troco, origem_venda, conta)
+      VALUES (${subtotal}, ${desconto}, ${total}, ${forma_pagamento}, ${valor_pago}, ${troco}, ${origem_venda ?? null}, ${conta ?? null})
       RETURNING *
     `;
 
