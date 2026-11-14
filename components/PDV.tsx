@@ -43,6 +43,27 @@ const PAY_COLORS: Record<PayMethod, string> = {
   pix:      "border-teal-500   bg-teal-50   text-teal-700",
 };
 
+// ─── Preço unitário editável ──────────────────────────────────────────────────
+function PriceInput({ price, onUpdate }: { price: number; onUpdate: (v: number) => void }) {
+  const [val, setVal] = useState(() => price.toFixed(2).replace(".", ","));
+  function commit() {
+    const n = parseFloat(val.replace(",", "."));
+    if (!isNaN(n) && n >= 0) { onUpdate(n); setVal(n.toFixed(2).replace(".", ",")); }
+    else setVal(price.toFixed(2).replace(".", ","));
+  }
+  return (
+    <input
+      value={val}
+      onChange={e => setVal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+      inputMode="decimal"
+      className="w-20 text-right text-xs font-mono text-blue-600 border-b border-dashed border-blue-300 focus:border-blue-500 outline-none bg-transparent"
+      title="Clique para editar o preço unitário"
+    />
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function PDV() {
   // Search
@@ -128,6 +149,10 @@ export default function PDV() {
     setSearch("");
     setResults([]);
     searchRef.current?.focus();
+  }
+
+  function updatePrice(id: number, price: number) {
+    setCart(prev => prev.map(i => i.produtoId === id ? { ...i, preco: Math.max(0, price) } : i));
   }
 
   function updateQty(id: number, delta: number) {
@@ -387,11 +412,12 @@ export default function PDV() {
                   </button>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="text-right w-24">
-                    <p className="font-bold text-gray-800">{BRL.format(item.preco * item.qty)}</p>
-                    {item.qty > 1 && (
-                      <p className="text-xs text-gray-400">{BRL.format(item.preco)} × {item.qty}</p>
-                    )}
+                  <div className="text-right">
+                    <p className="font-bold text-gray-800 text-sm">{BRL.format(item.preco * item.qty)}</p>
+                    <div className="flex items-center justify-end gap-1 mt-0.5">
+                      <PriceInput price={item.preco} onUpdate={v => updatePrice(item.produtoId, v)} />
+                      {item.qty > 1 && <span className="text-[10px] text-gray-400">× {item.qty}</span>}
+                    </div>
                   </div>
                   <button onClick={() => removeFromCart(item.produtoId)}
                     className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
