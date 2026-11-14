@@ -16,9 +16,10 @@ async function getProdutos(): Promise<ProdutoTriagem[]> {
 export default async function ProdutosPage() {
   const produtos = await getProdutos();
 
-  const totalRefML = produtos.reduce((s, p) => s + Number(p.preco_referencia ?? 0), 0);
-  const totalCusto = produtos.reduce((s, p) => s + Number(p.custo ?? 0), 0);
-  const totalOutlet = produtos.reduce((s, p) => s + Number(p.preco ?? 0), 0);
+  const totalQtd = produtos.reduce((s, p) => s + Number(p.quantidade ?? 1), 0);
+  const totalRefML = produtos.reduce((s, p) => s + Number(p.preco_referencia ?? 0) * Number(p.quantidade ?? 1), 0);
+  const totalCusto = produtos.reduce((s, p) => s + Number(p.custo ?? 0) * Number(p.quantidade ?? 1), 0);
+  const totalOutlet = produtos.reduce((s, p) => s + Number(p.preco ?? 0) * Number(p.quantidade ?? 1), 0);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -54,9 +55,9 @@ export default async function ProdutosPage() {
           {/* Cards de totais */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col gap-1">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Produtos</span>
-              <span className="text-3xl font-bold text-gray-800">{produtos.length}</span>
-              <span className="text-xs text-gray-400">itens triados</span>
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Estoque</span>
+              <span className="text-3xl font-bold text-gray-800">{totalQtd}</span>
+              <span className="text-xs text-gray-400">{produtos.length} produto{produtos.length !== 1 ? "s" : ""} · {totalQtd} unidade{totalQtd !== 1 ? "s" : ""}</span>
             </div>
             <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-5 flex flex-col gap-1">
               <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Ref. Mercado Livre</span>
@@ -86,6 +87,7 @@ export default async function ProdutosPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-center w-10">#</th>
                     <th className="px-4 py-3 text-left w-14">Foto</th>
                     <th className="px-4 py-3 text-left">Descrição</th>
                     <th className="px-4 py-3 text-left w-28 hidden sm:table-cell">Código</th>

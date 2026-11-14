@@ -70,6 +70,9 @@ export default function EditableRow({ p }: { p: ProdutoTriagem }) {
   if (editing) {
     return (
       <tr className="bg-blue-50 border-b border-blue-100">
+        <td className="px-4 py-2 text-center">
+          <span className="text-xs font-mono font-semibold text-gray-400">#{p.id}</span>
+        </td>
         <td className="px-4 py-2">
           {p.foto_url ? (
             <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
@@ -121,6 +124,9 @@ export default function EditableRow({ p }: { p: ProdutoTriagem }) {
 
   return (
     <tr className="hover:bg-gray-50 transition-colors group">
+      <td className="px-4 py-3 text-center">
+        <span className="text-xs font-mono font-semibold text-gray-400">#{p.id}</span>
+      </td>
       <td className="px-4 py-3">
         {p.foto_url ? (
           <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
