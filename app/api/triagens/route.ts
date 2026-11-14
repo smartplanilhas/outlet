@@ -84,7 +84,11 @@ export async function PATCH(req: NextRequest) {
       UPDATE triagens SET
         nome     = COALESCE(${body.nome    ?? null}, nome),
         status   = COALESCE(${body.status  ?? null}, status),
-        data_fim = CASE WHEN ${body.status ?? null} = 'finalizada' THEN NOW() ELSE data_fim END
+        data_fim = CASE
+          WHEN ${body.status ?? null} = 'finalizada' THEN NOW()
+          WHEN ${body.status ?? null} = 'ativa'      THEN NULL
+          ELSE data_fim
+        END
       WHERE id = ${parseInt(id)}
       RETURNING *
     `;

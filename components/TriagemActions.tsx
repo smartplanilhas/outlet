@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 interface Props {
   id: number;
   nome: string | null;
+  status: "ativa" | "finalizada";
 }
 
-export default function TriagemActions({ id, nome }: Props) {
-  const [mode, setMode]         = useState<"idle" | "editing" | "deleting">("idle");
-  const [draft, setDraft]       = useState(nome ?? "");
-  const [loading, setLoading]   = useState(false);
+export default function TriagemActions({ id, nome, status }: Props) {
+  const [mode, setMode]       = useState<"idle" | "editing" | "deleting">("idle");
+  const [draft, setDraft]     = useState(nome ?? "");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleSave() {
@@ -39,7 +40,21 @@ export default function TriagemActions({ id, nome }: Props) {
     }
   }
 
-  // ── Modo: confirmação de exclusão ──
+  async function handleReabrir() {
+    setLoading(true);
+    try {
+      await fetch(`/api/triagens?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ativa" }),
+      });
+      router.refresh();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Confirmação de exclusão ──
   if (mode === "deleting") {
     return (
       <div className="flex items-center gap-3 flex-wrap">
@@ -52,16 +67,15 @@ export default function TriagemActions({ id, nome }: Props) {
             disabled={loading}
             className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center gap-1.5"
           >
-            {loading
-              ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-              : null
-            }
+            {loading && (
+              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+            )}
             Confirmar exclusão
           </button>
-          <button
-            onClick={() => setMode("idle")}
-            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-          >
+          <button onClick={() => setMode("idle")} className="text-xs text-gray-500 hover:text-gray-700 transition-colors">
             Cancelar
           </button>
         </div>
@@ -69,7 +83,7 @@ export default function TriagemActions({ id, nome }: Props) {
     );
   }
 
-  // ── Modo: editar nome ──
+  // ── Editar nome ──
   if (mode === "editing") {
     return (
       <div className="flex items-center gap-2 flex-wrap">
@@ -84,26 +98,21 @@ export default function TriagemActions({ id, nome }: Props) {
           placeholder={`Triagem #${id}`}
           className="text-sm border border-blue-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 w-56"
         />
-        <button
-          onClick={handleSave}
-          disabled={loading}
-          className="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
+        <button onClick={handleSave} disabled={loading}
+          className="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
           {loading ? "..." : "Salvar"}
         </button>
-        <button
-          onClick={() => { setDraft(nome ?? ""); setMode("idle"); }}
-          className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-        >
+        <button onClick={() => { setDraft(nome ?? ""); setMode("idle"); }}
+          className="text-xs text-gray-500 hover:text-gray-700 transition-colors">
           Cancelar
         </button>
       </div>
     );
   }
 
-  // ── Modo: idle ──
+  // ── Idle ──
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <button
         onClick={() => { setDraft(nome ?? ""); setMode("editing"); }}
         className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
@@ -114,6 +123,28 @@ export default function TriagemActions({ id, nome }: Props) {
         </svg>
         Editar nome
       </button>
+
+      {status === "finalizada" && (
+        <button
+          onClick={handleReabrir}
+          disabled={loading}
+          className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+        >
+          {loading ? (
+            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+          ) : (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          )}
+          Reabrir
+        </button>
+      )}
+
       <button
         onClick={() => setMode("deleting")}
         className="px-3 py-1.5 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1"

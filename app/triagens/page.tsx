@@ -231,7 +231,7 @@ export default async function TriagensPage() {
 
                     {/* Rodapé com ações */}
                     <div className="border-t border-gray-100 px-5 py-2.5 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
-                      <TriagemActions id={t.id} nome={t.nome} />
+                      <TriagemActions id={t.id} nome={t.nome} status={t.status} />
                     </div>
                   </div>
                 );
