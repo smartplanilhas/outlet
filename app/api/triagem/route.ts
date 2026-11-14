@@ -114,6 +114,28 @@ export async function GET(req: NextRequest) {
   try {
     await ensureTable();
     const triagemId = req.nextUrl.searchParams.get("triagem_id");
+    const q         = req.nextUrl.searchParams.get("q");
+
+    // Busca para o PDV: por código exato, ID ou descrição parcial
+    if (q) {
+      const term = q.trim();
+      const rows = await sql`
+        SELECT * FROM produtos_triagem
+        WHERE (
+          LOWER(codigo) = LOWER(${term})
+          OR id = ${parseInt(term) || -1}
+          OR descricao ILIKE ${'%' + term + '%'}
+        )
+        AND preco IS NOT NULL
+        AND COALESCE(quantidade, 1) > 0
+        ORDER BY
+          CASE WHEN LOWER(codigo) = LOWER(${term}) THEN 0 ELSE 1 END,
+          data_triagem DESC
+        LIMIT 20
+      `;
+      return NextResponse.json(rows);
+    }
+
     const rows = triagemId
       ? await sql`SELECT * FROM produtos_triagem WHERE triagem_id = ${parseInt(triagemId)} ORDER BY data_triagem DESC LIMIT 200`
       : await sql`SELECT * FROM produtos_triagem ORDER BY data_triagem DESC LIMIT 200`;

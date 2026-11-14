@@ -1,0 +1,35 @@
+import PDV from "@/components/PDV";
+
+export default function VendaPage() {
+  return (
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 flex-shrink-0">
+        <div className="max-w-full px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-base font-bold leading-tight">PDV — Ponto de Venda</h1>
+              <p className="text-xs text-gray-400 leading-tight">Logística Outlet</p>
+            </div>
+          </div>
+          <nav className="flex items-center gap-1">
+            <a href="/"         className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Triagem</a>
+            <a href="/triagens" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Histórico</a>
+            <a href="/produtos"  className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Produtos</a>
+            <a href="/consulta"  className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Consulta</a>
+            <a href="/venda"     className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg">PDV</a>
+          </nav>
+        </div>
+      </header>
+
+      <PDV />
+    </div>
+  );
+}
