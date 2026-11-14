@@ -38,7 +38,8 @@ export default async function ProdutosPage() {
           </div>
           <nav className="flex items-center gap-1">
             <a href="/" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Triagem</a>
-            <a href="/produtos" className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">Produtos salvos</a>
+            <a href="/produtos" className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">Produtos</a>
+            <a href="/consulta" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">Consulta</a>
           </nav>
         </div>
       </header>
@@ -91,6 +92,7 @@ export default async function ProdutosPage() {
                     <th className="px-4 py-3 text-left w-14">Foto</th>
                     <th className="px-4 py-3 text-left">Descrição</th>
                     <th className="px-4 py-3 text-left w-28 hidden sm:table-cell">Código</th>
+                    <th className="px-4 py-3 text-left w-28 hidden sm:table-cell">Endereço</th>
                     <th className="px-4 py-3 text-center w-16">Qtd</th>
                     <th className="px-4 py-3 text-right w-28">Ref. ML</th>
                     <th className="px-4 py-3 text-right w-24 hidden md:table-cell">Custo</th>

@@ -21,4 +21,5 @@ export async function ensureTable() {
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS custo NUMERIC(10,2)`;
   await sql`ALTER TABLE produtos_triagem ALTER COLUMN codigo_ml TYPE TEXT`;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS quantidade INTEGER DEFAULT 1`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS endereco VARCHAR(100)`;
 }

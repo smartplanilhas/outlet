@@ -19,6 +19,7 @@ export default function EditableRow({ p }: { p: ProdutoTriagem }) {
   const [fields, setFields] = useState({
     descricao: p.descricao,
     codigo: p.codigo ?? "",
+    endereco: p.endereco ?? "",
     quantidade: String(p.quantidade ?? 1),
     preco_referencia: fmt(p.preco_referencia as unknown as number),
     custo: fmt(p.custo as unknown as number),
@@ -40,6 +41,7 @@ export default function EditableRow({ p }: { p: ProdutoTriagem }) {
         body: JSON.stringify({
           descricao: fields.descricao,
           codigo: fields.codigo || null,
+          endereco: fields.endereco || null,
           quantidade: parseInt(fields.quantidade) || 1,
           preco_referencia: parse(fields.preco_referencia),
           custo: parse(fields.custo),
@@ -57,6 +59,7 @@ export default function EditableRow({ p }: { p: ProdutoTriagem }) {
     setFields({
       descricao: p.descricao,
       codigo: p.codigo ?? "",
+      endereco: p.endereco ?? "",
       quantidade: String(p.quantidade ?? 1),
       preco_referencia: fmt(p.preco_referencia as unknown as number),
       custo: fmt(p.custo as unknown as number),
@@ -88,6 +91,10 @@ export default function EditableRow({ p }: { p: ProdutoTriagem }) {
         <td className="px-4 py-2 hidden sm:table-cell">
           <input value={fields.codigo} onChange={(e) => setFields(f => ({ ...f, codigo: e.target.value }))}
             placeholder="código" className={cell} />
+        </td>
+        <td className="px-4 py-2 hidden sm:table-cell">
+          <input value={fields.endereco} onChange={(e) => setFields(f => ({ ...f, endereco: e.target.value }))}
+            placeholder="ex: A2" className={cell} />
         </td>
         <td className="px-4 py-2 text-center">
           <input value={fields.quantidade} onChange={(e) => setFields(f => ({ ...f, quantidade: e.target.value }))}
@@ -147,6 +154,11 @@ export default function EditableRow({ p }: { p: ProdutoTriagem }) {
       <td className="px-4 py-3 hidden sm:table-cell">
         <span className="font-mono text-xs text-gray-500">{p.codigo ?? "—"}</span>
       </td>
+      <td className="px-4 py-3 hidden sm:table-cell">
+        {p.endereco
+          ? <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg">{p.endereco}</span>
+          : <span className="text-xs text-gray-300">—</span>}
+      </td>
       <td className="px-4 py-3 text-center">
         <span className="font-semibold text-gray-700">{p.quantidade ?? 1}</span>
       </td>
@@ -173,6 +185,13 @@ export default function EditableRow({ p }: { p: ProdutoTriagem }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
+          <a href={`/etiqueta/${p.id}`} target="_blank" rel="noopener noreferrer"
+            className="p-1.5 text-gray-300 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+            title="Imprimir etiqueta">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+          </a>
           <DeleteButton id={p.id} />
         </div>
       </td>

@@ -11,6 +11,7 @@ export interface ProdutoTriagem {
   custo: number | null;
   preco: number | null;
   quantidade: number | null;
+  endereco: string | null;
   data_triagem: string;
 }
 
@@ -23,6 +24,7 @@ export interface ProdutoPayload {
   custo?: number | null;
   preco?: number | null;
   quantidade?: number | null;
+  endereco?: string | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const rows = await sql`
       INSERT INTO produtos_triagem
-        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade)
+        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco)
       VALUES
         (${body.codigo?.trim() || null},
          ${body.descricao.trim()},
@@ -45,7 +47,8 @@ export async function POST(req: NextRequest) {
          ${body.preco_referencia ?? null},
          ${body.custo ?? null},
          ${body.preco ?? null},
-         ${body.quantidade ?? 1})
+         ${body.quantidade ?? 1},
+         ${body.endereco?.trim() || null})
       RETURNING id, data_triagem
     `;
 
@@ -69,7 +72,8 @@ export async function PATCH(req: NextRequest) {
         preco_referencia = ${body.preco_referencia ?? null},
         custo            = ${body.custo ?? null},
         preco            = ${body.preco ?? null},
-        quantidade       = ${body.quantidade ?? null}
+        quantidade       = ${body.quantidade ?? null},
+        endereco         = ${body.endereco?.trim() || null}
       WHERE id = ${parseInt(id)}
     `;
     return NextResponse.json({ ok: true });
