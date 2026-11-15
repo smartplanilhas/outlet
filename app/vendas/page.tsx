@@ -96,6 +96,7 @@ export default async function VendasPage({
 
   const totalReceita  = vendas.reduce((s, v) => s + Number(v.total), 0);
   const totalDesconto = vendas.reduce((s, v) => s + Number(v.desconto ?? 0), 0);
+  const ticketMedio   = vendas.length > 0 ? totalReceita / vendas.length : 0;
 
   const porPgto = vendas.reduce<Record<string, number>>((acc, v) => {
     const k = v.forma_pagamento || "outros";
@@ -148,6 +149,16 @@ export default async function VendasPage({
             <div className="bg-white rounded-2xl border border-green-100 shadow-sm p-4">
               <span className="text-xs font-semibold text-green-500 uppercase tracking-wide">Receita</span>
               <p className="text-2xl font-bold text-green-700 mt-1">{BRL.format(totalReceita)}</p>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-4">
+              <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Ticket Médio</span>
+              <p className="text-2xl font-bold text-blue-700 mt-1">
+                {vendas.length > 0 ? BRL.format(ticketMedio) : "—"}
+              </p>
+              {vendas.length > 0 && (
+                <p className="text-xs text-gray-400 mt-0.5">por venda</p>
+              )}
             </div>
 
             {totalDesconto > 0 && (
