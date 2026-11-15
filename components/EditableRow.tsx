@@ -120,6 +120,8 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
   const [showModal, setShowModal]       = useState(false);
   const [inCatalog, setInCatalog]       = useState(!!p.catalogo);
   const [togglingCat, setTogglingCat]   = useState(false);
+  const [inML, setInML]                 = useState(!!p.venda_ml);
+  const [togglingML, setTogglingML]     = useState(false);
   const router = useRouter();
 
   async function toggleCatalog() {
@@ -137,6 +139,24 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
       setInCatalog(!next);
     } finally {
       setTogglingCat(false);
+    }
+  }
+
+  async function toggleML() {
+    setTogglingML(true);
+    const next = !inML;
+    setInML(next);
+    try {
+      await fetch(`/api/triagem?id=${p.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ venda_ml: next }),
+      });
+      router.refresh();
+    } catch {
+      setInML(!next);
+    } finally {
+      setTogglingML(false);
     }
   }
 
@@ -243,6 +263,23 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
             </svg>
             {inCatalog ? "Catálogo" : "Catálogo"}
           </button>
+          {/* ML */}
+          <button
+            onClick={toggleML}
+            disabled={togglingML}
+            title={inML ? "No ML — clique para remover" : "Publicar no Mercado Livre"}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-colors mb-1 ${
+              inML
+                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                : "bg-gray-100 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600"
+            }`}
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+            </svg>
+            ML
+          </button>
+
           {/* Demais ações — sempre visíveis no mobile, hover no desktop */}
           <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <button

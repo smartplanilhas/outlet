@@ -37,6 +37,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
   const [custo, setCusto]           = useState("");
   const [preco, setPreco]           = useState("");
   const [status, setStatus]         = useState<ProdutoStatus>("");
+  const [vendaML, setVendaML]       = useState(false);
   const [mlRef, setMlRef]           = useState<MLRef | null>(null);
 
   const [result, setResult]         = useState<SearchResult | null>(null);
@@ -181,6 +182,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
         triagem_id:       triagemId ?? undefined,
         categoria:        categoria || undefined,
         status:           status || undefined,
+        venda_ml:         vendaML || undefined,
       };
       const res  = await fetch("/api/triagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -220,7 +222,7 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
     setCodigo(""); setDescription(""); setPhoto(null); setCategoria("");
     setCusto(""); setPreco(""); setMlRef(null); setResult(null);
     setError(null); setSearched(false); setSavedInfo(null);
-    setStatus("");
+    setStatus(""); setVendaML(false);
     setExistingMatch(null); setIncrementDone(null); setSavedInfo(null);
     setShowBusca(false); setBuscaQuery(""); setBuscaResults([]);
     if (fileRef.current) fileRef.current.value = "";
@@ -369,6 +371,37 @@ export default function TriageForm({ triagemId, onProductSaved }: Props) {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* ── Mercado Livre ── */}
+        <div className="px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setVendaML(v => !v)}
+            className={`flex items-center gap-3 w-full rounded-xl border-2 px-4 py-2.5 transition-colors text-left ${
+              vendaML ? "border-yellow-400 bg-yellow-50" : "border-gray-200 bg-white hover:border-yellow-300"
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              vendaML ? "bg-yellow-400" : "bg-gray-200"
+            }`}>
+              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+              </svg>
+            </div>
+            <span className={`text-sm font-semibold ${vendaML ? "text-yellow-700" : "text-gray-500"}`}>
+              {vendaML ? "Anúncio no Mercado Livre" : "Marcar como anúncio ML"}
+            </span>
+            <div className={`ml-auto w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+              vendaML ? "border-yellow-500 bg-yellow-500" : "border-gray-300"
+            }`}>
+              {vendaML && (
+                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/>
+                </svg>
+              )}
+            </div>
+          </button>
         </div>
 
         {/* ── Código ── */}

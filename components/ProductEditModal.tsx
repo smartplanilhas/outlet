@@ -28,6 +28,7 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
   const [fields, setFields] = useState({
     descricao:        p.descricao,
     catalogo:         !!p.catalogo,
+    venda_ml:         !!p.venda_ml,
     categoria:        p.categoria ?? "",
     status:           (p.status ?? "") as ProdutoStatus,
     foto_url:         p.foto_url ?? "",
@@ -100,6 +101,7 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
           custo:            parse(fields.custo),
           preco:            parse(fields.preco),
           status:           fields.status || null,
+          venda_ml:         fields.venda_ml,
           triagem_id:       fields.triagem_id,
         }),
       });
@@ -240,6 +242,42 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
               fields.catalogo ? "border-orange-500 bg-orange-500" : "border-gray-300"
             }`}>
               {fields.catalogo && (
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+          </button>
+
+          {/* Mercado Livre */}
+          <button
+            type="button"
+            onClick={() => setFields(f => ({ ...f, venda_ml: !f.venda_ml }))}
+            className={`flex items-center gap-3 w-full rounded-xl border-2 px-4 py-3 transition-colors text-left ${
+              fields.venda_ml
+                ? "border-yellow-400 bg-yellow-50"
+                : "border-gray-200 bg-white hover:border-yellow-300"
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              fields.venda_ml ? "bg-yellow-400" : "bg-gray-200"
+            }`}>
+              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+              </svg>
+            </div>
+            <div>
+              <p className={`font-semibold text-sm ${fields.venda_ml ? "text-yellow-700" : "text-gray-500"}`}>
+                {fields.venda_ml ? "Publicado no Mercado Livre" : "Fora do Mercado Livre"}
+              </p>
+              <p className="text-xs text-gray-400">
+                {fields.venda_ml ? "Produto anunciado no ML" : "Clique para marcar como anúncio ML"}
+              </p>
+            </div>
+            <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+              fields.venda_ml ? "border-yellow-500 bg-yellow-500" : "border-gray-300"
+            }`}>
+              {fields.venda_ml && (
                 <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>

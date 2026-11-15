@@ -16,6 +16,7 @@ export interface ProdutoTriagem {
   triagem_id: number | null;
   categoria: string | null;
   catalogo: boolean | null;
+  venda_ml: boolean | null;
   status: string | null;
 }
 
@@ -32,6 +33,7 @@ export interface ProdutoPayload {
   triagem_id?: number | null;
   categoria?: string | null;
   catalogo?: boolean | null;
+  venda_ml?: boolean | null;
   status?: string | null;
 }
 
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     const rows = await sql`
       INSERT INTO produtos_triagem
-        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco, triagem_id, categoria, status)
+        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco, triagem_id, categoria, status, venda_ml)
       VALUES
         (${body.codigo?.trim() || null},
          ${body.descricao.trim()},
@@ -59,7 +61,8 @@ export async function POST(req: NextRequest) {
          ${body.endereco?.trim() || null},
          ${body.triagem_id ?? null},
          ${body.categoria?.trim() || null},
-         ${body.status?.trim() || null})
+         ${body.status?.trim() || null},
+         ${body.venda_ml ?? false})
       RETURNING id, data_triagem
     `;
 
@@ -88,15 +91,19 @@ export async function PATCH(req: NextRequest) {
           quantidade       = ${body.quantidade ?? null},
           endereco         = ${body.endereco?.trim() || null},
           categoria        = ${body.categoria?.trim() || null},
-          status           = ${body.status?.trim() || null}
+          status           = ${body.status?.trim() || null},
+          venda_ml         = COALESCE(${body.venda_ml ?? null}, venda_ml)
         WHERE id = ${parseInt(id)}
       `;
     }
     if ("triagem_id" in body) {
       await sql`UPDATE produtos_triagem SET triagem_id = ${body.triagem_id ?? null} WHERE id = ${parseInt(id)}`;
     }
-    if ("catalogo" in body) {
+    if ("catalogo" in body && !("descricao" in body)) {
       await sql`UPDATE produtos_triagem SET catalogo = ${body.catalogo ?? false} WHERE id = ${parseInt(id)}`;
+    }
+    if ("venda_ml" in body && !("descricao" in body)) {
+      await sql`UPDATE produtos_triagem SET venda_ml = ${body.venda_ml ?? false} WHERE id = ${parseInt(id)}`;
     }
     if ("foto_url" in body) {
       await sql`UPDATE produtos_triagem SET foto_url = ${body.foto_url ?? null} WHERE id = ${parseInt(id)}`;
