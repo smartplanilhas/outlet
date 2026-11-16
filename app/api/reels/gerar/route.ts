@@ -63,8 +63,13 @@ function buildPrompt({
   const ctaTextos  = cta.map(c => CTA_LABEL[c] ?? c).join(" / ");
   const precoFmt   = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
+  const desconto = precoInternet
+    ? Math.round(((precoInternet - precoLoja) / precoInternet) * 100)
+    : 0;
+
   const precoInstrucao = precoInternet
-    ? `Preço na internet: ${precoFmt(precoInternet)} · Preço aqui: ${precoFmt(precoLoja)}. Na narração use: "Na internet custa [por extenso]. Aqui na loja: [por extenso]."`
+    ? `Preço na internet: ${precoFmt(precoInternet)} · Preço aqui: ${precoFmt(precoLoja)} (${desconto}% mais barato).
+OBRIGATÓRIO no corpo_fala: sempre cite PRIMEIRO o preço da internet e DEPOIS o preço da loja. Estrutura: "Na internet custa [por extenso]. Aqui [por extenso]." — nunca inverta essa ordem.`
     : `Preço na loja: ${precoFmt(precoLoja)}. Fale por extenso na narração.`;
 
   const listaFalas = ultimasFalas.length
@@ -93,6 +98,7 @@ REGRAS OBRIGATÓRIAS:
 4. Tom: vendedor animado de loja física, sem exagero
 5. Nunca cite "Mercado Livre" — diga "na internet" ou "em outras lojas"
 6. abertura_fala deve ser DIFERENTE das já usadas acima
+7. Quando houver preço da internet: SEMPRE mencione o preço da internet ANTES do preço da loja — nunca ao contrário. O contraste é o argumento de venda principal.
 
 Retorne APENAS JSON válido (sem markdown, sem texto extra):
 {
