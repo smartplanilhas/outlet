@@ -6,6 +6,7 @@ import { createRequire }                 from 'module';
 import { fileURLToPath }                 from 'url';
 import { dirname, join }                 from 'path';
 import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync } from 'fs';
+import { tmpdir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -119,7 +120,7 @@ const composition = await selectComposition({
 });
 
 // ── Diretório de saída ────────────────────────────────────────────────────────
-const outDir = '/tmp/remotion-out';
+const outDir = join(tmpdir(), 'remotion-out');
 if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
 
 const videoPath = `${outDir}/video-${jobId}.mp4`;
