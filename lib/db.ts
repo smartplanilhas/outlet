@@ -36,6 +36,43 @@ export async function ensureTable() {
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS catalogo BOOLEAN DEFAULT false`;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS status VARCHAR(20)`;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS venda_ml BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS vantagens TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS preco_internet NUMERIC(10,2)`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS remover_fundo BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS unidade_unica BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS cta TEXT[] DEFAULT '{venha_loja}'`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS reels_trabalhos (
+      id                 SERIAL PRIMARY KEY,
+      produto_id         INTEGER REFERENCES produtos_triagem(id) ON DELETE CASCADE,
+      status             VARCHAR(20) DEFAULT 'pendente',
+      abertura           TEXT,
+      estilo_foto        VARCHAR(20),
+      roteiro_narracao   TEXT,
+      legenda            TEXT,
+      hashtags           TEXT[],
+      audio_url          TEXT,
+      video_url          TEXT,
+      capa_url           TEXT,
+      instagram_media_id TEXT,
+      instagram_link     TEXT,
+      erro               TEXT,
+      criado_em          TIMESTAMPTZ DEFAULT NOW(),
+      atualizado_em      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS config_loja (
+      id                 SERIAL PRIMARY KEY,
+      whatsapp           VARCHAR(20),
+      endereco           TEXT,
+      horario            TEXT,
+      link_bio           TEXT,
+      instagram_usuario  VARCHAR(100),
+      voz_id             TEXT DEFAULT '1oZawzZ4adgYtgm1oMqN'
+    )
+  `;
+  await sql`ALTER TABLE reels_trabalhos ADD COLUMN IF NOT EXISTS tempos_narracao JSONB`;
   await sql`ALTER TABLE vendas ADD COLUMN IF NOT EXISTS origem_venda VARCHAR(50)`;
   await sql`ALTER TABLE vendas ADD COLUMN IF NOT EXISTS conta VARCHAR(20)`;
   await sql`

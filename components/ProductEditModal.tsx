@@ -25,6 +25,15 @@ interface Props {
 }
 
 export default function ProductEditModal({ p, triagens, onClose, onSaved }: Props) {
+const CTA_OPTIONS = [
+  { value: "comenta_eu_quero", label: "Comenta EU QUERO" },
+  { value: "whatsapp",         label: "Chama no WhatsApp" },
+  { value: "catalogo_bio",     label: "Catálogo na bio" },
+  { value: "venha_loja",       label: "Venha à loja" },
+] as const;
+
+type CtaValue = typeof CTA_OPTIONS[number]["value"];
+
   const [fields, setFields] = useState({
     descricao:        p.descricao,
     catalogo:         !!p.catalogo,
@@ -39,8 +48,14 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
     custo:            fmt(p.custo as unknown as number),
     preco:            fmt(p.preco as unknown as number),
     triagem_id:       p.triagem_id as number | null,
+    vantagens:        (p.vantagens as unknown as string[]) ?? ["", "", ""],
+    preco_internet:   fmt(p.preco_internet as unknown as number),
+    remover_fundo:    !!p.remover_fundo,
+    unidade_unica:    !!p.unidade_unica,
+    cta:              ((p.cta as unknown as string[]) ?? ["venha_loja"]) as CtaValue[],
   });
   const [saving, setSaving]     = useState(false);
+  const [gerandoReels, setGerandoReels] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -103,12 +118,42 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
           status:           fields.status || null,
           venda_ml:         fields.venda_ml,
           triagem_id:       fields.triagem_id,
+          vantagens:        fields.vantagens.filter(v => v.trim()),
+          preco_internet:   parse(fields.preco_internet),
+          remover_fundo:    fields.remover_fundo,
+          unidade_unica:    fields.unidade_unica,
+          cta:              fields.cta,
         }),
       });
       onSaved();
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleGerarReels() {
+    setGerandoReels(true);
+    try {
+      const res = await fetch("/api/reels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produto_id: p.id }),
+      });
+      if (res.ok) {
+        window.location.href = "/reels";
+      }
+    } finally {
+      setGerandoReels(false);
+    }
+  }
+
+  function toggleCta(value: CtaValue) {
+    setFields(f => ({
+      ...f,
+      cta: f.cta.includes(value)
+        ? f.cta.filter(v => v !== value)
+        : [...f.cta, value],
+    }));
   }
 
   const inp = "w-full rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none px-3 py-2.5 text-sm transition-colors bg-white";
@@ -395,6 +440,133 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
             </div>
           </div>
 
+          {/* ── Seção Reels ──────────────────────────────────────────────── */}
+          <div className="flex flex-col gap-4 rounded-2xl border-2 border-pink-100 bg-pink-50/40 px-4 py-4">
+            <p className="text-xs font-bold text-pink-600 uppercase tracking-wide flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.869V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+              </svg>
+              Reels
+            </p>
+
+            {/* Vantagens */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Benefícios (até 3, ex.: "pipoca em 3 min")
+              </label>
+              {[0, 1, 2].map(i => (
+                <input
+                  key={i}
+                  value={fields.vantagens[i] ?? ""}
+                  onChange={e => {
+                    const next = [...fields.vantagens];
+                    next[i] = e.target.value;
+                    setFields(f => ({ ...f, vantagens: next }));
+                  }}
+                  placeholder={`Benefício ${i + 1}`}
+                  className={inp}
+                />
+              ))}
+            </div>
+
+            {/* Preço na internet */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Preço na internet (R$)
+              </label>
+              <input
+                value={fields.preco_internet}
+                onChange={e => setFields(f => ({ ...f, preco_internet: e.target.value }))}
+                inputMode="decimal"
+                placeholder="0,00"
+                className={inp + " font-mono w-40"}
+              />
+            </div>
+
+            {/* Remover fundo / Unidade única */}
+            <div className="flex gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setFields(f => ({ ...f, remover_fundo: !f.remover_fundo }))}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm font-semibold transition-colors ${
+                  fields.remover_fundo
+                    ? "border-pink-400 bg-pink-100 text-pink-700"
+                    : "border-gray-200 bg-white text-gray-500 hover:border-pink-300"
+                }`}
+              >
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                  fields.remover_fundo ? "border-pink-500 bg-pink-500" : "border-gray-300"
+                }`}>
+                  {fields.remover_fundo && (
+                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                Remover fundo
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFields(f => ({ ...f, unidade_unica: !f.unidade_unica }))}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm font-semibold transition-colors ${
+                  fields.unidade_unica
+                    ? "border-red-400 bg-red-50 text-red-700"
+                    : "border-gray-200 bg-white text-gray-500 hover:border-red-300"
+                }`}
+              >
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                  fields.unidade_unica ? "border-red-500 bg-red-500" : "border-gray-300"
+                }`}>
+                  {fields.unidade_unica && (
+                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                Só 1 unidade
+              </button>
+            </div>
+
+            {/* Chamada para ação */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Chamada para ação
+              </label>
+              <div className="flex flex-col gap-1.5">
+                {CTA_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => toggleCta(opt.value)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm transition-colors text-left ${
+                      fields.cta.includes(opt.value)
+                        ? "border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-indigo-300"
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                      fields.cta.includes(opt.value) ? "border-indigo-500 bg-indigo-500" : "border-gray-300"
+                    }`}>
+                      {fields.cta.includes(opt.value) && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {fields.cta.length > 2 && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Apenas as 2 primeiras chamadas vão para o vídeo; as demais ficam só na legenda.
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Triagem */}
           {triagens.length > 0 && (
             <div className="flex flex-col gap-1.5">
@@ -430,13 +602,26 @@ export default function ProductEditModal({ p, triagens, onClose, onSaved }: Prop
         </div>
 
         {/* Rodapé */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            Cancelar
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0 gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleGerarReels}
+              disabled={gerandoReels}
+              className="px-4 py-2.5 text-sm font-semibold text-pink-600 bg-pink-50 hover:bg-pink-100 border border-pink-200 rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.869V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+              </svg>
+              {gerandoReels ? "Criando..." : "Gerar Reels"}
+            </button>
+          </div>
           <button
             onClick={handleSave}
             disabled={saving || !fields.descricao.trim()}

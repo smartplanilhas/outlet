@@ -18,6 +18,11 @@ export interface ProdutoTriagem {
   catalogo: boolean | null;
   venda_ml: boolean | null;
   status: string | null;
+  vantagens: string[] | null;
+  preco_internet: number | null;
+  remover_fundo: boolean | null;
+  unidade_unica: boolean | null;
+  cta: string[] | null;
 }
 
 export interface ProdutoPayload {
@@ -35,6 +40,11 @@ export interface ProdutoPayload {
   catalogo?: boolean | null;
   venda_ml?: boolean | null;
   status?: string | null;
+  vantagens?: string[] | null;
+  preco_internet?: number | null;
+  remover_fundo?: boolean | null;
+  unidade_unica?: boolean | null;
+  cta?: string[] | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -48,7 +58,9 @@ export async function POST(req: NextRequest) {
 
     const rows = await sql`
       INSERT INTO produtos_triagem
-        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco, triagem_id, categoria, status, venda_ml)
+        (codigo, descricao, foto_url, codigo_ml, preco_referencia, custo, preco, quantidade, endereco,
+         triagem_id, categoria, status, venda_ml,
+         vantagens, preco_internet, remover_fundo, unidade_unica, cta)
       VALUES
         (${body.codigo?.trim() || null},
          ${body.descricao.trim()},
@@ -62,7 +74,12 @@ export async function POST(req: NextRequest) {
          ${body.triagem_id ?? null},
          ${body.categoria?.trim() || null},
          ${body.status?.trim() || null},
-         ${body.venda_ml ?? false})
+         ${body.venda_ml ?? false},
+         ${body.vantagens ?? []},
+         ${body.preco_internet ?? null},
+         ${body.remover_fundo ?? false},
+         ${body.unidade_unica ?? false},
+         ${body.cta ?? ['venha_loja']})
       RETURNING id, data_triagem
     `;
 
@@ -92,7 +109,12 @@ export async function PATCH(req: NextRequest) {
           endereco         = ${body.endereco?.trim() || null},
           categoria        = ${body.categoria?.trim() || null},
           status           = ${body.status?.trim() || null},
-          venda_ml         = COALESCE(${body.venda_ml ?? null}, venda_ml)
+          venda_ml         = COALESCE(${body.venda_ml ?? null}, venda_ml),
+          vantagens        = ${body.vantagens ?? []},
+          preco_internet   = ${body.preco_internet ?? null},
+          remover_fundo    = ${body.remover_fundo ?? false},
+          unidade_unica    = ${body.unidade_unica ?? false},
+          cta              = ${body.cta ?? ['venha_loja']}
         WHERE id = ${parseInt(id)}
       `;
     }

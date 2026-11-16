@@ -117,11 +117,12 @@ function TriagemQuickAssign({
 
 // ─── Linha da tabela ──────────────────────────────────────────────────────────
 export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; triagens?: Triagem[] }) {
-  const [showModal, setShowModal]       = useState(false);
-  const [inCatalog, setInCatalog]       = useState(!!p.catalogo);
-  const [togglingCat, setTogglingCat]   = useState(false);
-  const [inML, setInML]                 = useState(!!p.venda_ml);
-  const [togglingML, setTogglingML]     = useState(false);
+  const [showModal, setShowModal]         = useState(false);
+  const [inCatalog, setInCatalog]         = useState(!!p.catalogo);
+  const [togglingCat, setTogglingCat]     = useState(false);
+  const [inML, setInML]                   = useState(!!p.venda_ml);
+  const [togglingML, setTogglingML]       = useState(false);
+  const [gerandoReels, setGerandoReels]   = useState(false);
   const router = useRouter();
 
   async function toggleCatalog() {
@@ -139,6 +140,21 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
       setInCatalog(!next);
     } finally {
       setTogglingCat(false);
+    }
+  }
+
+  async function gerarReels(e: React.MouseEvent) {
+    e.stopPropagation();
+    setGerandoReels(true);
+    try {
+      const res = await fetch("/api/reels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produto_id: p.id }),
+      });
+      if (res.ok) router.push("/reels");
+    } finally {
+      setGerandoReels(false);
     }
   }
 
@@ -278,6 +294,19 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
             </svg>
             ML
+          </button>
+          {/* Reels */}
+          <button
+            onClick={gerarReels}
+            disabled={gerandoReels}
+            title="Gerar Reels para este produto"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-colors mb-1 bg-pink-50 text-pink-500 hover:bg-pink-100 hover:text-pink-700 disabled:opacity-50"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M15 10l4.553-2.069A1 1 0 0121 8.869V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+            </svg>
+            {gerandoReels ? "..." : "Reels"}
           </button>
 
           {/* Demais ações — sempre visíveis no mobile, hover no desktop */}
