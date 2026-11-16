@@ -76,6 +76,7 @@ export default function ReelsPage() {
   const [ctas, setCtas]             = useState<Record<number, string[]>>({});
   const [salvando, setSalvando]     = useState<Record<number, boolean>>({});
   const [gerando, setGerando]       = useState<Record<number, boolean>>({});
+  const [expandido, setExpandido]   = useState<Record<number, boolean>>({});
 
   async function carregar() {
     setLoading(true);
@@ -214,8 +215,9 @@ export default function ReelsPage() {
                 const roteiro: Roteiro | null = (() => {
                   try { return t.roteiro_narracao ? JSON.parse(t.roteiro_narracao) : null; } catch { return null; }
                 })();
-                const isGerando  = gerando[t.id] || t.status === "gerando";
+                const isGerando       = gerando[t.id] || t.status === "gerando";
                 const legendaAlterada = legendas[t.id] !== (t.legenda ?? "");
+                const aberto          = !!expandido[t.id];
 
                 return (
                   <div key={t.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -257,23 +259,37 @@ export default function ReelsPage() {
                               )}
                             </p>
                           </div>
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 flex items-center gap-1 ${STATUS_COLOR[t.status]}`}>
-                            {isGerando && (
-                              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 ${STATUS_COLOR[t.status]}`}>
+                              {isGerando && (
+                                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                              )}
+                              {STATUS_LABEL[t.status]}
+                            </span>
+                            <button
+                              onClick={() => setExpandido(e => ({ ...e, [t.id]: !aberto }))}
+                              className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors flex items-center gap-1"
+                            >
+                              {aberto ? "Recolher" : "Ver"}
+                              <svg className={`w-3 h-3 transition-transform ${aberto ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                               </svg>
-                            )}
-                            {STATUS_LABEL[t.status]}
-                          </span>
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Erro */}
+                        {/* Erro — sempre visível */}
                         {t.status === "erro" && t.erro && (
                           <p className="mt-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 font-mono">{t.erro}</p>
                         )}
 
-                        {/* ── Tipo: Vídeo ou Imagem ────────────────────── */}
+                        {/* ── Conteúdo expandível ──────────────────────── */}
+                        {aberto && <>
+
+                        {/* Tipo: Vídeo ou Imagem */}
                         {(t.status === "pendente" || t.status === "erro") && !isGerando && (
                           <div className="mt-3 flex items-center gap-2">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Formato:</span>
@@ -451,6 +467,7 @@ export default function ReelsPage() {
                             )}
                           </div>
                         )}
+                        </>}
                       </div>
                     </div>
 
