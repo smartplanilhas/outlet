@@ -1,5 +1,5 @@
 import { bundle }                       from '@remotion/bundler';
-import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
+import { renderMedia, renderStill, selectComposition, ensureLocalBrowser } from '@remotion/renderer';
 import { neon }                          from '@neondatabase/serverless';
 import { put }                           from '@vercel/blob';
 import { createRequire }                 from 'module';
@@ -17,6 +17,9 @@ if (!jobId || isNaN(jobId)) {
 }
 
 console.log(`\n── Render Reels — job #${jobId} ──`);
+
+console.log('Garantindo browser...');
+await ensureLocalBrowser();
 
 const sql = neon(process.env.DATABASE_URL);
 

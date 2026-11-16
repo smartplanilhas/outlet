@@ -36,10 +36,6 @@ jobs:
             libdrm2 libxcomposite1 libxdamage1 libxrandr2 \
             libxss1 libxtst6 fonts-noto-color-emoji
 
-      - name: Ensure Remotion browser
-        run: npx remotion browser ensure
-        working-directory: remotion
-
       - name: Render video
         run: node render.mjs ${{ github.event.client_payload.job_id || github.event.inputs.job_id }}
         working-directory: remotion
