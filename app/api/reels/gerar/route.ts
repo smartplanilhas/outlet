@@ -110,7 +110,7 @@ Retorne APENAS JSON válido (sem markdown, sem texto extra):
     "vantagens": ["benefício 1", "benefício 2"],
     "chamada": ["texto CTA 1", "texto CTA 2"]
   },
-  "legenda": "legenda do post com emojis — 2 a 4 frases — sem hashtags",
+  "legenda": "[DISPONÍVEL] legenda do post com emojis — 2 a 4 frases — sem hashtags",
   "hashtags": ["#achadosorocaba", "#outlet", "#promoção"]
 }`;
 }
