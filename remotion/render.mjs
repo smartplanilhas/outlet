@@ -112,69 +112,104 @@ const serveUrl = await bundle({
   entryPoint: join(__dirname, 'src/index.ts'),
 });
 
-// ── Select composition ────────────────────────────────────────────────────────
-const composition = await selectComposition({
-  serveUrl,
-  id: 'ReelsComposition',
-  inputProps: { ...inputProps, durationInFrames },
-});
-
 // ── Diretório de saída ────────────────────────────────────────────────────────
 const outDir = join(tmpdir(), 'remotion-out');
 if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
 
-const videoPath = `${outDir}/video-${jobId}.mp4`;
-const coverPath = `${outDir}/cover-${jobId}.jpg`;
+// ── Imagem estática ───────────────────────────────────────────────────────────
+if (job.tipo === 'imagem') {
+  const imagemPath = `${outDir}/imagem-${jobId}.jpg`;
+  const imagemProps = {
+    descricao:      job.descricao,
+    fotoStaticFile,
+    fotoUrl,
+    preco:          Number(job.preco),
+    precoInternet:  job.preco_internet ? Number(job.preco_internet) : null,
+    vantagens:      (job.vantagens ?? []).filter(Boolean),
+    cta,
+    unidadeUnica:   !!job.unidade_unica,
+    roteiro:        { textos_tela: roteiro.textos_tela },
+  };
 
-// ── Render vídeo ──────────────────────────────────────────────────────────────
-console.log(`Renderizando ${durationInFrames} frames @ ${fps}fps...`);
-await renderMedia({
-  composition,
-  serveUrl,
-  codec:         'h264',
-  outputLocation: videoPath,
-  inputProps:    { ...inputProps, durationInFrames },
-  concurrency:   2,
-  timeoutInMilliseconds: 180_000,
-});
-console.log('Vídeo renderizado.');
+  const imgComp = await selectComposition({
+    serveUrl, id: 'ImagemComposition', inputProps: imagemProps,
+  });
 
-// ── Render capa (frame do carimbo de preço) ───────────────────────────────────
-console.log('Gerando capa...');
-await renderStill({
-  composition,
-  serveUrl,
-  output:     coverPath,
-  inputProps: { ...inputProps, durationInFrames },
-  frame:      Math.min(precoFrame + 10, durationInFrames - 1),
-  imageFormat: 'jpeg',
-  jpegQuality: 90,
-});
-console.log('Capa gerada.');
+  console.log('Gerando imagem 1080×1080...');
+  await renderStill({
+    composition: imgComp, serveUrl,
+    output: imagemPath, inputProps: imagemProps,
+    frame: 0, imageFormat: 'jpeg', jpegQuality: 95,
+  });
+  console.log('Imagem gerada.');
 
-// ── Upload Vercel Blob ────────────────────────────────────────────────────────
-console.log('Uploading...');
-const videoBlob = await put(
-  `reels/video/${jobId}-${Date.now()}.mp4`,
-  readFileSync(videoPath),
-  { access: 'public', contentType: 'video/mp4' },
-);
-const coverBlob = await put(
-  `reels/covers/${jobId}-${Date.now()}.jpg`,
-  readFileSync(coverPath),
-  { access: 'public', contentType: 'image/jpeg' },
-);
-console.log('Upload concluído:', videoBlob.url);
+  const imgBlob = await put(
+    `reels/imagens/${jobId}-${Date.now()}.jpg`,
+    readFileSync(imagemPath),
+    { access: 'public', contentType: 'image/jpeg' },
+  );
+  console.log('Upload concluído:', imgBlob.url);
 
-// ── Atualizar job ─────────────────────────────────────────────────────────────
-await sql`
-  UPDATE reels_trabalhos SET
-    status        = 'pronto',
-    video_url     = ${videoBlob.url},
-    capa_url      = ${coverBlob.url},
-    atualizado_em = NOW()
-  WHERE id = ${jobId}
-`;
+  await sql`
+    UPDATE reels_trabalhos SET
+      status        = 'pronto',
+      video_url     = ${imgBlob.url},
+      capa_url      = ${imgBlob.url},
+      atualizado_em = NOW()
+    WHERE id = ${jobId}
+  `;
+
+// ── Vídeo ─────────────────────────────────────────────────────────────────────
+} else {
+  const composition = await selectComposition({
+    serveUrl,
+    id: 'ReelsComposition',
+    inputProps: { ...inputProps, durationInFrames },
+  });
+
+  const videoPath = `${outDir}/video-${jobId}.mp4`;
+  const coverPath = `${outDir}/cover-${jobId}.jpg`;
+
+  console.log(`Renderizando ${durationInFrames} frames @ ${fps}fps...`);
+  await renderMedia({
+    composition, serveUrl,
+    codec: 'h264', outputLocation: videoPath,
+    inputProps: { ...inputProps, durationInFrames },
+    concurrency: 2, timeoutInMilliseconds: 180_000,
+  });
+  console.log('Vídeo renderizado.');
+
+  console.log('Gerando capa...');
+  await renderStill({
+    composition, serveUrl,
+    output: coverPath, inputProps: { ...inputProps, durationInFrames },
+    frame: Math.min(precoFrame + 10, durationInFrames - 1),
+    imageFormat: 'jpeg', jpegQuality: 90,
+  });
+  console.log('Capa gerada.');
+
+  console.log('Uploading...');
+  const videoBlob = await put(
+    `reels/video/${jobId}-${Date.now()}.mp4`,
+    readFileSync(videoPath),
+    { access: 'public', contentType: 'video/mp4' },
+  );
+  const coverBlob = await put(
+    `reels/covers/${jobId}-${Date.now()}.jpg`,
+    readFileSync(coverPath),
+    { access: 'public', contentType: 'image/jpeg' },
+  );
+  console.log('Upload concluído:', videoBlob.url);
+
+  await sql`
+    UPDATE reels_trabalhos SET
+      status        = 'pronto',
+      video_url     = ${videoBlob.url},
+      capa_url      = ${coverBlob.url},
+      atualizado_em = NOW()
+    WHERE id = ${jobId}
+  `;
+}
 console.log(`Job #${jobId} → pronto. ✓\n`);
 
 // ── Limpeza ───────────────────────────────────────────────────────────────────

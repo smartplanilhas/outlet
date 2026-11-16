@@ -1,6 +1,7 @@
 import React from 'react';
 import { Composition } from 'remotion';
 import { ReelsComposition, type ReelsProps } from './ReelsComposition';
+import { ImagemComposition, type ImagemProps } from './ImagemComposition';
 
 const DEFAULT_PROPS: ReelsProps = {
   descricao:        'Airfryer Digital 4L',
@@ -25,7 +26,29 @@ const DEFAULT_PROPS: ReelsProps = {
   durationInFrames: 270,
 };
 
+const DEFAULT_IMAGEM: ImagemProps = {
+  descricao:        'Airfryer Digital 4L',
+  fotoStaticFile:   null,
+  fotoUrl:          null,
+  preco:            89.90,
+  precoInternet:    199.90,
+  vantagens:        ['Sem óleo', 'Pronta em 12 min'],
+  cta:              ['venha_loja'],
+  unidadeUnica:     false,
+  roteiro:          { textos_tela: { chamada: ['Venha à loja'] } },
+};
+
 export const Root: React.FC = () => (
+  <>
+  <Composition
+    id="ImagemComposition"
+    component={ImagemComposition}
+    durationInFrames={1}
+    fps={30}
+    width={1080}
+    height={1080}
+    defaultProps={DEFAULT_IMAGEM}
+  />
   <Composition
     id="ReelsComposition"
     component={ReelsComposition}
@@ -38,4 +61,5 @@ export const Root: React.FC = () => (
       durationInFrames: (props as ReelsProps).durationInFrames ?? 270,
     })}
   />
+  </>
 );

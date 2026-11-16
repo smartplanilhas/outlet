@@ -30,6 +30,7 @@ interface Trabalho {
   erro:             string | null;
   cta:              string[] | null;
   custo_estimado:   { claude: number; elevenlabs: number; total: number } | null;
+  tipo:             "video" | "imagem";
   criado_em:        string;
   atualizado_em:    string;
   descricao:        string;
@@ -242,9 +243,10 @@ export default function ReelsPage() {
                             <p className="font-semibold text-gray-800 text-sm line-clamp-2">{t.descricao}</p>
                             <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
                               <span>#{t.id} · Produto #{t.produto_id} · {DATE.format(new Date(t.criado_em))}</span>
-                              {t.abertura && (
-                                <span className="text-pink-400">· {ABERTURAS[t.abertura]?.label}</span>
-                              )}
+                              <span className={t.tipo === "imagem" ? "text-blue-400" : "text-pink-400"}>
+                                · {t.tipo === "imagem" ? "🖼️ Imagem" : "🎬 Vídeo"}
+                                {t.abertura && t.tipo !== "imagem" && ` · ${ABERTURAS[t.abertura]?.label}`}
+                              </span>
                               {t.custo_estimado && (
                                 <span
                                   className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono cursor-help"
@@ -269,6 +271,34 @@ export default function ReelsPage() {
                         {/* Erro */}
                         {t.status === "erro" && t.erro && (
                           <p className="mt-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 font-mono">{t.erro}</p>
+                        )}
+
+                        {/* ── Tipo: Vídeo ou Imagem ────────────────────── */}
+                        {(t.status === "pendente" || t.status === "erro") && !isGerando && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Formato:</span>
+                            {(["video", "imagem"] as const).map(op => (
+                              <button
+                                key={op}
+                                type="button"
+                                onClick={async () => {
+                                  setTrabalhos(ts => ts.map(x => x.id === t.id ? { ...x, tipo: op } : x));
+                                  await fetch(`/api/reels?id=${t.id}`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ tipo: op }),
+                                  });
+                                }}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-colors ${
+                                  t.tipo === op
+                                    ? "border-pink-400 bg-pink-50 text-pink-700"
+                                    : "border-gray-200 bg-white text-gray-500 hover:border-pink-300"
+                                }`}
+                              >
+                                {op === "video" ? "🎬 Vídeo" : "🖼️ Imagem"}
+                              </button>
+                            ))}
+                          </div>
                         )}
 
                         {/* ── Seletor de CTA (pendente ou erro) ────────── */}
@@ -384,14 +414,15 @@ export default function ReelsPage() {
                               </div>
                             )}
 
-                            {/* Prévia de vídeo (Fase 2.5) */}
-                            {t.video_url && (
-                              <video
-                                src={t.video_url}
-                                controls
+                            {/* Prévia */}
+                            {t.video_url && t.tipo === "imagem" && (
+                              <img src={t.video_url} alt="Prévia"
+                                className="w-full max-w-xs rounded-xl shadow" />
+                            )}
+                            {t.video_url && t.tipo !== "imagem" && (
+                              <video src={t.video_url} controls
                                 className="w-full max-w-xs rounded-xl"
-                                poster={t.capa_url ?? undefined}
-                              />
+                                poster={t.capa_url ?? undefined} />
                             )}
                           </div>
                         )}
