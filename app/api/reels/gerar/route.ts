@@ -254,7 +254,8 @@ export async function POST(req: NextRequest) {
       } catch { /* usa o que Claude gerou */ }
     }
 
-    const isImagem = job.tipo === 'imagem';
+    const isImagem = (job.tipo ?? 'video') === 'imagem';
+    console.log(`[gerar] job #${jobId} tipo="${job.tipo}" isImagem=${isImagem}`);
 
     // ── Narração via ElevenLabs (apenas para vídeo) ────────────────────────
     let tempos:    ReturnType<typeof computeTempos> = [];

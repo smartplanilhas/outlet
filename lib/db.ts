@@ -77,6 +77,7 @@ export async function ensureTable() {
   await sql`ALTER TABLE reels_trabalhos ADD COLUMN IF NOT EXISTS cta TEXT[]`;
   await sql`ALTER TABLE reels_trabalhos ADD COLUMN IF NOT EXISTS custo_estimado JSONB`;
   await sql`ALTER TABLE reels_trabalhos ADD COLUMN IF NOT EXISTS tipo VARCHAR(10) DEFAULT 'video'`;
+  await sql`UPDATE reels_trabalhos SET tipo = 'video' WHERE tipo IS NULL`;
   await sql`ALTER TABLE vendas ADD COLUMN IF NOT EXISTS origem_venda VARCHAR(50)`;
   await sql`ALTER TABLE vendas ADD COLUMN IF NOT EXISTS conta VARCHAR(20)`;
   await sql`
