@@ -115,6 +115,42 @@ Retorne APENAS JSON válido (sem markdown, sem texto extra):
 }`;
 }
 
+function buildPromptImagem({
+  descricao, vantagens, precoLoja, precoInternet, unidade_unica, cta,
+}: {
+  descricao: string; vantagens: string[]; precoLoja: number;
+  precoInternet: number | null; unidade_unica: boolean; cta: string[];
+}): string {
+  const precoFmt = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+  const desconto = precoInternet
+    ? Math.round(((precoInternet - precoLoja) / precoInternet) * 100)
+    : 0;
+  const ctaTextos = cta.map(c => CTA_LABEL[c] ?? c).join(" / ");
+
+  return `Crie a legenda e hashtags de um post de imagem no Instagram para o "Achado do Dia" de uma loja de logística reversa em Sorocaba-SP.
+
+PRODUTO: ${descricao}
+BENEFÍCIOS: ${vantagens.length ? vantagens.join(", ") : "não informado"}
+${precoInternet
+  ? `Preço na internet: ${precoFmt(precoInternet)} · Preço aqui: ${precoFmt(precoLoja)} (${desconto}% mais barato).`
+  : `Preço aqui: ${precoFmt(precoLoja)}.`}
+UNIDADE ÚNICA: ${unidade_unica ? "Sim" : "Não"}
+CHAMADA PARA AÇÃO: ${ctaTextos}
+
+REGRAS:
+1. Tudo em português do Brasil — ZERO palavras em inglês
+2. Legenda começa com [DISPONÍVEL]
+3. Tom animado de loja física, sem exagero
+4. Nunca cite "Mercado Livre" — use "na internet"
+
+Retorne APENAS este JSON (sem markdown):
+{
+  "legenda": "[DISPONÍVEL] legenda com emojis — 2 a 4 frases — sem hashtags",
+  "hashtags": ["#achadosorocaba", "#outlet", "#promoção"],
+  "chamada": ["texto CTA 1", "texto CTA 2"]
+}`;
+}
+
 function computeTempos(
   roteiro: Pick<Roteiro, "abertura_fala" | "corpo_fala" | "fechamento_fala">,
   al:      ElevenAlignment,
@@ -178,44 +214,50 @@ export async function POST(req: NextRequest) {
       LIMIT 10
     `;
 
+    const isImagem = (job.tipo ?? 'video') === 'imagem';
+    console.log(`[gerar] job #${jobId} tipo="${job.tipo}" isImagem=${isImagem}`);
+
     const cfgRows = await sql`SELECT voz_id FROM config_loja LIMIT 1`;
     const voz_id  = cfgRows[0]?.voz_id ?? "1oZawzZ4adgYtgm1oMqN";
 
+    const ctaJob = ((job.cta_job ?? job.cta) as string[] ?? ["whatsapp"]).slice(0, 2);
+    const vantagensJob = (job.vantagens as string[] ?? []).filter(Boolean);
+
+    // ── Abertura (apenas para vídeo) ───────────────────────────────────────
     const desconto = job.preco_internet && job.preco
       ? ((Number(job.preco_internet) - Number(job.preco)) / Number(job.preco_internet)) * 100
       : 0;
 
     const ultimas3: AberturaKey[] = ultimos.slice(0, 3).map((r: Record<string, unknown>) => r.abertura as string).filter(Boolean) as AberturaKey[];
-    let aberturaKey: AberturaKey;
-
-    if (novaAbertura && job.abertura) {
-      aberturaKey = sortearAbertura({
-        unidade_unica: !!job.unidade_unica,
-        desconto_pct:  desconto,
-        ultimas_3:     [job.abertura as AberturaKey, ...ultimas3].slice(0, 3),
-      });
-    } else {
-      aberturaKey = sortearAbertura({
-        unidade_unica: !!job.unidade_unica,
-        desconto_pct:  desconto,
-        ultimas_3:     ultimas3,
-      });
-    }
+    const aberturaKey: AberturaKey = isImagem ? 'caixa_misteriosa' : (
+      novaAbertura && job.abertura
+        ? sortearAbertura({ unidade_unica: !!job.unidade_unica, desconto_pct: desconto, ultimas_3: [job.abertura as AberturaKey, ...ultimas3].slice(0, 3) })
+        : sortearAbertura({ unidade_unica: !!job.unidade_unica, desconto_pct: desconto, ultimas_3: ultimas3 })
+    );
 
     const ultimasFalas = ultimos.map((r: Record<string, unknown>) => {
       try { return (JSON.parse(r.roteiro_narracao as string) as Roteiro).abertura_fala; } catch { return null; }
     }).filter(Boolean) as string[];
 
-    // ── Roteiro via Claude ─────────────────────────────────────────────────
-    const prompt = buildPrompt({
-      descricao:    job.descricao,
-      vantagens:    (job.vantagens as string[] ?? []).filter(Boolean),
-      precoLoja:    Number(job.preco),
-      precoInternet: job.preco_internet ? Number(job.preco_internet) : null,
-      unidade_unica: !!job.unidade_unica,
-      cta:          ((job.cta_job ?? job.cta) as string[] ?? ["whatsapp"]).slice(0, 2),
-      aberturaKey,
-      ultimasFalas,
+    // ── Prompt Claude (simplificado para imagem) ───────────────────────────
+    const prompt = isImagem
+      ? buildPromptImagem({
+          descricao:     job.descricao,
+          vantagens:     vantagensJob,
+          precoLoja:     Number(job.preco),
+          precoInternet: job.preco_internet ? Number(job.preco_internet) : null,
+          unidade_unica: !!job.unidade_unica,
+          cta:           ctaJob,
+        })
+      : buildPrompt({
+          descricao:     job.descricao,
+          vantagens:     vantagensJob,
+          precoLoja:     Number(job.preco),
+          precoInternet: job.preco_internet ? Number(job.preco_internet) : null,
+          unidade_unica: !!job.unidade_unica,
+          cta:           ctaJob,
+          aberturaKey,
+          ultimasFalas,
       novaAbertura,
     });
 
@@ -243,8 +285,23 @@ export async function POST(req: NextRequest) {
       roteiro = JSON.parse(match[0]);
     }
 
+    // Para imagem: normalizar campos de vídeo que não existem no prompt simples
+    if (isImagem) {
+      const roteiroRaw = roteiro as unknown as Record<string, unknown>;
+      roteiro.abertura_fala   = '';
+      roteiro.corpo_fala      = '';
+      roteiro.fechamento_fala = '';
+      if (!roteiro.textos_tela) {
+        roteiro.textos_tela = {
+          abertura:  '',
+          vantagens: vantagensJob,
+          chamada:   (roteiroRaw.chamada as string[] | undefined) ?? [],
+        };
+      }
+    }
+
     // Em nova_abertura: preservar corpo e fechamento do roteiro anterior
-    if (novaAbertura && job.roteiro_narracao) {
+    if (!isImagem && novaAbertura && job.roteiro_narracao) {
       try {
         const anterior = JSON.parse(job.roteiro_narracao) as Roteiro;
         roteiro.corpo_fala      = anterior.corpo_fala;
@@ -254,8 +311,6 @@ export async function POST(req: NextRequest) {
       } catch { /* usa o que Claude gerou */ }
     }
 
-    const isImagem = (job.tipo ?? 'video') === 'imagem';
-    console.log(`[gerar] job #${jobId} tipo="${job.tipo}" isImagem=${isImagem}`);
 
     // ── Narração via ElevenLabs (apenas para vídeo) ────────────────────────
     let tempos:    ReturnType<typeof computeTempos> = [];
