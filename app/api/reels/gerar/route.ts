@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
 
     // ── Carregar job + produto ─────────────────────────────────────────────
     const rows = await sql`
-      SELECT rt.*, pt.descricao, pt.vantagens, pt.preco, pt.preco_internet,
+      SELECT rt.*, pt.descricao, pt.foto_url, pt.vantagens, pt.preco, pt.preco_internet,
              pt.remover_fundo, pt.unidade_unica, pt.cta,
              rt.cta AS cta_job
       FROM reels_trabalhos rt
