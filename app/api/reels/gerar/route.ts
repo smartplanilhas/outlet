@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
       precoLoja:    Number(job.preco),
       precoInternet: job.preco_internet ? Number(job.preco_internet) : null,
       unidade_unica: !!job.unidade_unica,
-      cta:          ((job.cta_job ?? job.cta) as string[] ?? ["venha_loja"]).slice(0, 2),
+      cta:          ((job.cta_job ?? job.cta) as string[] ?? ["whatsapp"]).slice(0, 2),
       aberturaKey,
       ultimasFalas,
       novaAbertura,

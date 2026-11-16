@@ -52,7 +52,7 @@ type CtaValue = typeof CTA_OPTIONS[number]["value"];
     preco_internet:   fmt(p.preco_internet as unknown as number),
     remover_fundo:    !!p.remover_fundo,
     unidade_unica:    !!p.unidade_unica,
-    cta:              ((p.cta as unknown as string[]) ?? ["venha_loja"]) as CtaValue[],
+    cta:              ((p.cta as unknown as string[]) ?? ["whatsapp"]) as CtaValue[],
   });
   const [saving, setSaving]     = useState(false);
   const [gerandoReels, setGerandoReels] = useState(false);

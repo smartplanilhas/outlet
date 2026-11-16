@@ -87,7 +87,7 @@ export default function ReelsPage() {
       const initCta: Record<number, string[]> = {};
       for (const t of data) {
         initLeg[t.id] = t.legenda ?? "";
-        initCta[t.id] = t.cta ?? ["venha_loja"];
+        initCta[t.id] = t.cta ?? ["whatsapp"];
       }
       setLegendas(initLeg);
       setCtas(initCta);
@@ -129,7 +129,7 @@ export default function ReelsPage() {
   }
 
   async function toggleCta(id: number, value: string) {
-    const atual = ctas[id] ?? ["venha_loja"];
+    const atual = ctas[id] ?? ["whatsapp"];
     const next  = atual.includes(value) ? atual.filter(v => v !== value) : [...atual, value];
     setCtas(c => ({ ...c, [id]: next }));
     await fetch(`/api/reels?id=${id}`, {
@@ -307,7 +307,7 @@ export default function ReelsPage() {
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Chamada para ação no vídeo</p>
                             <div className="flex flex-wrap gap-2">
                               {CTA_OPTIONS.map(opt => {
-                                const sel = (ctas[t.id] ?? ["venha_loja"]).includes(opt.value);
+                                const sel = (ctas[t.id] ?? ["whatsapp"]).includes(opt.value);
                                 return (
                                   <button
                                     key={opt.value}

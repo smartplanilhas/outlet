@@ -40,7 +40,8 @@ export async function ensureTable() {
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS preco_internet NUMERIC(10,2)`;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS remover_fundo BOOLEAN DEFAULT false`;
   await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS unidade_unica BOOLEAN DEFAULT false`;
-  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS cta TEXT[] DEFAULT '{venha_loja}'`;
+  await sql`ALTER TABLE produtos_triagem ADD COLUMN IF NOT EXISTS cta TEXT[] DEFAULT '{whatsapp}'`;
+  await sql`ALTER TABLE produtos_triagem ALTER COLUMN cta SET DEFAULT '{whatsapp}'`;
   await sql`
     CREATE TABLE IF NOT EXISTS reels_trabalhos (
       id                 SERIAL PRIMARY KEY,

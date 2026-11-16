@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
          ${body.preco_internet ?? null},
          ${body.remover_fundo ?? false},
          ${body.unidade_unica ?? false},
-         ${body.cta ?? ['venha_loja']})
+         ${body.cta ?? ['whatsapp']})
       RETURNING id, data_triagem
     `;
 
@@ -114,7 +114,7 @@ export async function PATCH(req: NextRequest) {
           preco_internet   = ${body.preco_internet ?? null},
           remover_fundo    = ${body.remover_fundo ?? false},
           unidade_unica    = ${body.unidade_unica ?? false},
-          cta              = ${body.cta ?? ['venha_loja']}
+          cta              = ${body.cta ?? ['whatsapp']}
         WHERE id = ${parseInt(id)}
       `;
     }
