@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+remotion/node_modules
+remotion/public/audio-*
+remotion/public/foto-*
 /.pnp
 .pnp.*
 .yarn/*
