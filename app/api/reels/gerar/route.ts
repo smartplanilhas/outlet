@@ -254,57 +254,62 @@ export async function POST(req: NextRequest) {
       } catch { /* usa o que Claude gerou */ }
     }
 
-    // ── Narração via ElevenLabs ────────────────────────────────────────────
-    const narracao = `${roteiro.abertura_fala} ${roteiro.corpo_fala} ${roteiro.fechamento_fala}`;
+    const isImagem = job.tipo === 'imagem';
 
-    const elRes = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voz_id}/with-timestamps`,
-      {
-        method:  "POST",
-        headers: {
-          "xi-api-key":    process.env.ELEVENLABS_API_KEY!,
-          "Content-Type":  "application/json",
+    // ── Narração via ElevenLabs (apenas para vídeo) ────────────────────────
+    let tempos:    ReturnType<typeof computeTempos> = [];
+    let audioUrl:  string | null = null;
+    let custoElevenLabs = 0;
+    let caracteres      = 0;
+
+    if (!isImagem) {
+      const narracao = `${roteiro.abertura_fala} ${roteiro.corpo_fala} ${roteiro.fechamento_fala}`;
+
+      const elRes = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voz_id}/with-timestamps`,
+        {
+          method:  "POST",
+          headers: {
+            "xi-api-key":    process.env.ELEVENLABS_API_KEY!,
+            "Content-Type":  "application/json",
+          },
+          body: JSON.stringify({
+            text:     narracao,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+          }),
         },
-        body: JSON.stringify({
-          text:     narracao,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-        }),
-      },
-    );
+      );
 
-    if (!elRes.ok) {
-      const errText = await elRes.text();
-      throw new Error(`ElevenLabs ${elRes.status}: ${errText}`);
+      if (!elRes.ok) {
+        const errText = await elRes.text();
+        throw new Error(`ElevenLabs ${elRes.status}: ${errText}`);
+      }
+
+      const elData: { audio_base64: string; alignment: ElevenAlignment } = await elRes.json();
+      tempos     = computeTempos(roteiro, elData.alignment);
+      caracteres = narracao.length;
+      custoElevenLabs = caracteres * 0.0003;
+
+      const audioBuffer = Buffer.from(elData.audio_base64, "base64");
+      try {
+        const blob = await put(`reels/audio/${jobId}-${Date.now()}.mp3`, audioBuffer, {
+          access: "public", contentType: "audio/mpeg",
+        });
+        audioUrl = blob.url;
+      } catch {
+        audioUrl = `data:audio/mpeg;base64,${elData.audio_base64}`;
+      }
     }
 
-    const elData: { audio_base64: string; alignment: ElevenAlignment } = await elRes.json();
-    const tempos = computeTempos(roteiro, elData.alignment);
-
-    // ── Custo ElevenLabs ──────────────────────────────────────────────────
-    const caracteres       = narracao.length;
-    const custoElevenLabs  = caracteres * 0.0003; // $0,30/1000 chars
-    const custoTotal       = custoClaude + custoElevenLabs;
-    const custoEstimado    = {
+    // ── Custo estimado ─────────────────────────────────────────────────────
+    const custoTotal    = custoClaude + custoElevenLabs;
+    const custoEstimado = {
       claude:     Number(custoClaude.toFixed(5)),
       elevenlabs: Number(custoElevenLabs.toFixed(5)),
       total:      Number(custoTotal.toFixed(5)),
       detalhes:   { input_tokens: inputTokens, output_tokens: outputTokens, caracteres },
     };
-
-    // ── Upload áudio → Vercel Blob (ou data URL como fallback) ────────────
-    const audioBuffer = Buffer.from(elData.audio_base64, "base64");
-    let audioUrl: string;
-    try {
-      const blob = await put(`reels/audio/${jobId}-${Date.now()}.mp3`, audioBuffer, {
-        access:      "public",
-        contentType: "audio/mpeg",
-      });
-      audioUrl = blob.url;
-    } catch {
-      // Blob não configurado — salva inline como data URL
-      audioUrl = `data:audio/mpeg;base64,${elData.audio_base64}`;
-    }
 
     // ── Atualizar job ──────────────────────────────────────────────────────
     const estilo_foto = job.remover_fundo ? "recorte" : "cartao";
