@@ -3,6 +3,12 @@ name: Render Reels
 on:
   repository_dispatch:
     types: [render-reels]
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: 'ID do job em reels_trabalhos'
+        required: true
+        type: string
 
 jobs:
   render:
@@ -37,7 +43,7 @@ jobs:
         working-directory: remotion
 
       - name: Render video
-        run: node render.mjs ${{ github.event.client_payload.job_id }}
+        run: node render.mjs ${{ github.event.client_payload.job_id || github.event.inputs.job_id }}
         working-directory: remotion
         env:
           DATABASE_URL:          ${{ secrets.DATABASE_URL }}
