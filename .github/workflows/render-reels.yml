@@ -1,0 +1,44 @@
+name: Render Reels
+
+on:
+  repository_dispatch:
+    types: [render-reels]
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: remotion/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: remotion
+
+      - name: Install system libs for Chrome
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libgbm-dev libasound2 libatk-bridge2.0-0 \
+            libdrm2 libxcomposite1 libxdamage1 libxrandr2 \
+            libxss1 libxtst6 fonts-noto-color-emoji
+
+      - name: Ensure Remotion browser
+        run: npx remotion browser ensure
+        working-directory: remotion
+
+      - name: Render video
+        run: node render.mjs ${{ github.event.client_payload.job_id }}
+        working-directory: remotion
+        env:
+          DATABASE_URL:          ${{ secrets.DATABASE_URL }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}

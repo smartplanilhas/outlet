@@ -17,7 +17,7 @@ interface Roteiro {
 interface Trabalho {
   id:               number;
   produto_id:       number;
-  status:           "pendente" | "gerando" | "pronto" | "aprovado" | "publicado" | "erro";
+  status:           "pendente" | "gerando" | "aguardando_video" | "pronto" | "aprovado" | "publicado" | "erro";
   abertura:         AberturaKey | null;
   estilo_foto:      string | null;
   roteiro_narracao: string | null;
@@ -43,21 +43,23 @@ const CTA_OPTIONS = [
 ] as const;
 
 const STATUS_LABEL: Record<Trabalho["status"], string> = {
-  pendente:  "Pendente",
-  gerando:   "Gerando…",
-  pronto:    "Pronto para revisar",
-  aprovado:  "Aprovado",
-  publicado: "Publicado",
-  erro:      "Erro",
+  pendente:         "Pendente",
+  gerando:          "Gerando roteiro…",
+  aguardando_video: "Renderizando vídeo…",
+  pronto:           "Pronto para revisar",
+  aprovado:         "Aprovado",
+  publicado:        "Publicado",
+  erro:             "Erro",
 };
 
 const STATUS_COLOR: Record<Trabalho["status"], string> = {
-  pendente:  "bg-gray-100 text-gray-600",
-  gerando:   "bg-blue-100 text-blue-700",
-  pronto:    "bg-yellow-100 text-yellow-700",
-  aprovado:  "bg-green-100 text-green-700",
-  publicado: "bg-purple-100 text-purple-700",
-  erro:      "bg-red-100 text-red-600",
+  pendente:         "bg-gray-100 text-gray-600",
+  gerando:          "bg-blue-100 text-blue-700",
+  aguardando_video: "bg-orange-100 text-orange-700",
+  pronto:           "bg-yellow-100 text-yellow-700",
+  aprovado:         "bg-green-100 text-green-700",
+  publicado:        "bg-purple-100 text-purple-700",
+  erro:             "bg-red-100 text-red-600",
 };
 
 const DATE = new Intl.DateTimeFormat("pt-BR", {
@@ -93,6 +95,14 @@ export default function ReelsPage() {
   }
 
   useEffect(() => { carregar(); }, []);
+
+  // Auto-refresh quando há jobs aguardando vídeo
+  useEffect(() => {
+    const temRenderizando = trabalhos.some(t => t.status === "aguardando_video" || t.status === "gerando");
+    if (!temRenderizando) return;
+    const timer = setInterval(carregar, 15_000);
+    return () => clearInterval(timer);
+  }, [trabalhos]);
 
   async function gerar(id: number, modo: "completo" | "nova_abertura" = "completo") {
     setGerando(g => ({ ...g, [id]: true }));

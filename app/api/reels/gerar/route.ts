@@ -290,7 +290,7 @@ export async function POST(req: NextRequest) {
 
     await sql`
       UPDATE reels_trabalhos SET
-        status           = 'pronto',
+        status           = 'aguardando_video',
         abertura         = ${aberturaKey},
         estilo_foto      = ${estilo_foto},
         roteiro_narracao = ${JSON.stringify(roteiro)},
@@ -301,6 +301,29 @@ export async function POST(req: NextRequest) {
         atualizado_em    = NOW()
       WHERE id = ${jobId}
     `;
+
+    // ── Disparar GitHub Actions workflow ──────────────────────────────────
+    const githubPat  = process.env.GITHUB_PAT;
+    const githubRepo = process.env.GITHUB_REPO ?? 'smartplanilhas/outlet';
+    if (githubPat) {
+      const dispatchRes = await fetch(`https://api.github.com/repos/${githubRepo}/dispatches`, {
+        method:  'POST',
+        headers: {
+          'Authorization': `Bearer ${githubPat}`,
+          'Accept':        'application/vnd.github.v3+json',
+          'Content-Type':  'application/json',
+        },
+        body: JSON.stringify({
+          event_type:    'render-reels',
+          client_payload: { job_id: jobId },
+        }),
+      });
+      if (!dispatchRes.ok) {
+        console.error('[gerar] GitHub dispatch falhou:', dispatchRes.status, await dispatchRes.text());
+      } else {
+        console.log(`[gerar] GitHub Actions disparado para job #${jobId}`);
+      }
+    }
 
     return NextResponse.json({ ok: true, roteiro, audio_url: audioUrl, tempos });
 
