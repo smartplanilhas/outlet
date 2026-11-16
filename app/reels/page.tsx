@@ -46,7 +46,7 @@ const CTA_OPTIONS = [
 
 const STATUS_LABEL: Record<Trabalho["status"], string> = {
   pendente:         "Pendente",
-  gerando:          "Gerando roteiro…",
+  gerando:          "Gerando mídia…",
   aguardando_video: "Renderizando vídeo…",
   pronto:           "Pronto para revisar",
   aprovado:         "Aprovado",
@@ -376,14 +376,14 @@ export default function ReelsPage() {
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                 </svg>
-                                Gerando roteiro e narração…
+                                Gerando mídia…
                               </>
                             ) : (
                               <>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
-                                Gerar roteiro e narração
+                                Gerar mídia
                               </>
                             )}
                           </button>
