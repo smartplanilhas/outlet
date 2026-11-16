@@ -220,8 +220,12 @@ export async function POST(req: NextRequest) {
       messages:   [{ role: "user", content: prompt }],
     });
 
+    // ── Custo Claude ──────────────────────────────────────────────────────
+    const inputTokens  = claudeRes.usage.input_tokens;
+    const outputTokens = claudeRes.usage.output_tokens;
+    const custoClaude  = inputTokens * 0.0000008 + outputTokens * 0.000004;
+
     let jsonText = (claudeRes.content[0] as { text: string }).text.trim();
-    // Strip markdown code blocks if present
     jsonText = jsonText.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
 
     let roteiro: Roteiro;
@@ -271,6 +275,17 @@ export async function POST(req: NextRequest) {
     const elData: { audio_base64: string; alignment: ElevenAlignment } = await elRes.json();
     const tempos = computeTempos(roteiro, elData.alignment);
 
+    // ── Custo ElevenLabs ──────────────────────────────────────────────────
+    const caracteres       = narracao.length;
+    const custoElevenLabs  = caracteres * 0.0003; // $0,30/1000 chars
+    const custoTotal       = custoClaude + custoElevenLabs;
+    const custoEstimado    = {
+      claude:     Number(custoClaude.toFixed(5)),
+      elevenlabs: Number(custoElevenLabs.toFixed(5)),
+      total:      Number(custoTotal.toFixed(5)),
+      detalhes:   { input_tokens: inputTokens, output_tokens: outputTokens, caracteres },
+    };
+
     // ── Upload áudio → Vercel Blob (ou data URL como fallback) ────────────
     const audioBuffer = Buffer.from(elData.audio_base64, "base64");
     let audioUrl: string;
@@ -298,6 +313,7 @@ export async function POST(req: NextRequest) {
         hashtags         = ${roteiro.hashtags},
         audio_url        = ${audioUrl},
         tempos_narracao  = ${JSON.stringify(tempos)},
+        custo_estimado   = ${JSON.stringify(custoEstimado)},
         atualizado_em    = NOW()
       WHERE id = ${jobId}
     `;
@@ -325,7 +341,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, roteiro, audio_url: audioUrl, tempos });
+    return NextResponse.json({ ok: true, roteiro, audio_url: audioUrl, tempos, custo: custoEstimado });
 
   } catch (e) {
     console.error("[reels gerar]", e);

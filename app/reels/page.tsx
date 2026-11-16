@@ -29,6 +29,7 @@ interface Trabalho {
   instagram_link:   string | null;
   erro:             string | null;
   cta:              string[] | null;
+  custo_estimado:   { claude: number; elevenlabs: number; total: number } | null;
   criado_em:        string;
   atualizado_em:    string;
   descricao:        string;
@@ -239,11 +240,17 @@ export default function ReelsPage() {
                         <div className="flex items-start justify-between gap-2 flex-wrap">
                           <div>
                             <p className="font-semibold text-gray-800 text-sm line-clamp-2">{t.descricao}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">
-                              #{t.id} · Produto #{t.produto_id} · {DATE.format(new Date(t.criado_em))}
+                            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                              <span>#{t.id} · Produto #{t.produto_id} · {DATE.format(new Date(t.criado_em))}</span>
                               {t.abertura && (
-                                <span className="ml-1.5 text-pink-400">
-                                  · {ABERTURAS[t.abertura]?.label}
+                                <span className="text-pink-400">· {ABERTURAS[t.abertura]?.label}</span>
+                              )}
+                              {t.custo_estimado && (
+                                <span
+                                  className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono cursor-help"
+                                  title={`Claude: $${t.custo_estimado.claude} · ElevenLabs: $${t.custo_estimado.elevenlabs}`}
+                                >
+                                  ~${t.custo_estimado.total.toFixed(4)}
                                 </span>
                               )}
                             </p>

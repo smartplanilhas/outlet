@@ -48,7 +48,7 @@ const fps = 30;
 const narrativaDuracao = tempos.length > 0
   ? Math.max(...tempos.map(t => t.fim))
   : 8;
-const durationInFrames = Math.ceil((narrativaDuracao + 1.5) * fps);
+const durationInFrames = Math.ceil((narrativaDuracao + 3) * fps);
 
 // CTA: job overrides produto
 const cta = (job.cta_job ?? job.cta_produto ?? ['venha_loja']).slice(0, 2);
