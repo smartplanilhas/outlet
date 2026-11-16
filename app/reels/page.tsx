@@ -249,14 +249,18 @@ export default function ReelsPage() {
                                 · {t.tipo === "imagem" ? "🖼️ Imagem" : "🎬 Vídeo"}
                                 {t.abertura && t.tipo !== "imagem" && ` · ${ABERTURAS[t.abertura]?.label}`}
                               </span>
-                              {t.custo_estimado && (
-                                <span
-                                  className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono cursor-help"
-                                  title={`Claude: $${t.custo_estimado.claude} · ElevenLabs: $${t.custo_estimado.elevenlabs}`}
-                                >
-                                  ~${t.custo_estimado.total.toFixed(4)}
-                                </span>
-                              )}
+                              {t.custo_estimado && (() => {
+                                const BRL_RATE = 5.90;
+                                const toR = (v: number) => (v * BRL_RATE).toFixed(3).replace('.', ',');
+                                return (
+                                  <span
+                                    className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono cursor-help"
+                                    title={`Claude: R$${toR(t.custo_estimado!.claude)} · ElevenLabs: R$${toR(t.custo_estimado!.elevenlabs)}`}
+                                  >
+                                    ~R${toR(t.custo_estimado!.total)}
+                                  </span>
+                                );
+                              })()}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
