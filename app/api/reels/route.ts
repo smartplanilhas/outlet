@@ -81,6 +81,12 @@ export async function PATCH(req: NextRequest) {
         WHERE id = ${parseInt(id)}
       `;
     }
+    if ("cta" in body) {
+      await sql`
+        UPDATE reels_trabalhos SET cta = ${body.cta}, atualizado_em = NOW()
+        WHERE id = ${parseInt(id)}
+      `;
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e) {

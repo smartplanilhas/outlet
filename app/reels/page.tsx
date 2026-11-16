@@ -28,11 +28,19 @@ interface Trabalho {
   capa_url:         string | null;
   instagram_link:   string | null;
   erro:             string | null;
+  cta:              string[] | null;
   criado_em:        string;
   atualizado_em:    string;
   descricao:        string;
   foto_url:         string | null;
 }
+
+const CTA_OPTIONS = [
+  { value: "comenta_eu_quero", label: "Comenta EU QUERO" },
+  { value: "whatsapp",         label: "Chama no WhatsApp" },
+  { value: "catalogo_bio",     label: "Link da bio" },
+  { value: "venha_loja",       label: "Venha à loja" },
+] as const;
 
 const STATUS_LABEL: Record<Trabalho["status"], string> = {
   pendente:  "Pendente",
@@ -61,6 +69,7 @@ export default function ReelsPage() {
   const [trabalhos, setTrabalhos]   = useState<Trabalho[]>([]);
   const [loading, setLoading]       = useState(true);
   const [legendas, setLegendas]     = useState<Record<number, string>>({});
+  const [ctas, setCtas]             = useState<Record<number, string[]>>({});
   const [salvando, setSalvando]     = useState<Record<number, boolean>>({});
   const [gerando, setGerando]       = useState<Record<number, boolean>>({});
 
@@ -70,9 +79,14 @@ export default function ReelsPage() {
       const res  = await fetch("/api/reels");
       const data: Trabalho[] = await res.json();
       setTrabalhos(data);
-      const init: Record<number, string> = {};
-      for (const t of data) init[t.id] = t.legenda ?? "";
-      setLegendas(init);
+      const initLeg: Record<number, string>   = {};
+      const initCta: Record<number, string[]> = {};
+      for (const t of data) {
+        initLeg[t.id] = t.legenda ?? "";
+        initCta[t.id] = t.cta ?? ["venha_loja"];
+      }
+      setLegendas(initLeg);
+      setCtas(initCta);
     } finally {
       setLoading(false);
     }
@@ -100,6 +114,17 @@ export default function ReelsPage() {
     } finally {
       setGerando(g => ({ ...g, [id]: false }));
     }
+  }
+
+  async function toggleCta(id: number, value: string) {
+    const atual = ctas[id] ?? ["venha_loja"];
+    const next  = atual.includes(value) ? atual.filter(v => v !== value) : [...atual, value];
+    setCtas(c => ({ ...c, [id]: next }));
+    await fetch(`/api/reels?id=${id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ cta: next }),
+    });
   }
 
   async function aprovar(id: number) {
@@ -227,6 +252,46 @@ export default function ReelsPage() {
                         {/* Erro */}
                         {t.status === "erro" && t.erro && (
                           <p className="mt-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 font-mono">{t.erro}</p>
+                        )}
+
+                        {/* ── Seletor de CTA (pendente ou erro) ────────── */}
+                        {(t.status === "pendente" || t.status === "erro") && !isGerando && (
+                          <div className="mt-3 flex flex-col gap-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Chamada para ação no vídeo</p>
+                            <div className="flex flex-wrap gap-2">
+                              {CTA_OPTIONS.map(opt => {
+                                const sel = (ctas[t.id] ?? ["venha_loja"]).includes(opt.value);
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => toggleCta(t.id, opt.value)}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-colors ${
+                                      sel
+                                        ? "border-indigo-400 bg-indigo-50 text-indigo-700"
+                                        : "border-gray-200 bg-white text-gray-500 hover:border-indigo-300"
+                                    }`}
+                                  >
+                                    <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                                      sel ? "border-indigo-500 bg-indigo-500" : "border-gray-300"
+                                    }`}>
+                                      {sel && (
+                                        <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      )}
+                                    </div>
+                                    {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {(ctas[t.id] ?? []).length > 2 && (
+                              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                                Apenas as 2 primeiras vão para o vídeo; as demais ficam só na legenda.
+                              </p>
+                            )}
+                          </div>
                         )}
 
                         {/* ── Botão gerar (pendente ou erro) ───────────── */}
