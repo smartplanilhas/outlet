@@ -299,14 +299,14 @@ export default function EditableRow({ p, triagens = [] }: { p: ProdutoTriagem; t
           <button
             onClick={gerarReels}
             disabled={gerandoReels}
-            title="Gerar Reels para este produto"
+            title="Postar este produto"
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-colors mb-1 bg-pink-50 text-pink-500 hover:bg-pink-100 hover:text-pink-700 disabled:opacity-50"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M15 10l4.553-2.069A1 1 0 0121 8.869V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
             </svg>
-            {gerandoReels ? "..." : "Reels"}
+            {gerandoReels ? "..." : "Postar"}
           </button>
 
           {/* Demais ações — sempre visíveis no mobile, hover no desktop */}

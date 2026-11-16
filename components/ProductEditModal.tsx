@@ -447,7 +447,7 @@ type CtaValue = typeof CTA_OPTIONS[number]["value"];
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M15 10l4.553-2.069A1 1 0 0121 8.869V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
               </svg>
-              Reels
+              Postar
             </p>
 
             {/* Vantagens */}
@@ -619,7 +619,7 @@ type CtaValue = typeof CTA_OPTIONS[number]["value"];
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M15 10l4.553-2.069A1 1 0 0121 8.869V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
               </svg>
-              {gerandoReels ? "Criando..." : "Gerar Reels"}
+              {gerandoReels ? "Criando..." : "Postar"}
             </button>
           </div>
           <button
