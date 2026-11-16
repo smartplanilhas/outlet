@@ -312,7 +312,41 @@ export async function POST(req: NextRequest) {
       detalhes:   { input_tokens: inputTokens, output_tokens: outputTokens, caracteres },
     };
 
-    // ── Atualizar job ──────────────────────────────────────────────────────
+    // ── Imagem: gerar com next/og direto, sem GH Actions ──────────────────
+    if (isImagem) {
+      const { generateImageBuffer } = await import('./generateImage');
+      const imgBuffer = await generateImageBuffer({
+        descricao:     job.descricao,
+        fotoUrl:       job.foto_url ?? null,
+        preco:         Number(job.preco),
+        precoInternet: job.preco_internet ? Number(job.preco_internet) : null,
+        vantagens:     (job.vantagens as string[] ?? []).filter(Boolean),
+        cta:           ((job.cta_job ?? job.cta) as string[] ?? ['whatsapp']).slice(0, 2),
+        chamada:       roteiro.textos_tela?.chamada ?? [],
+        unidadeUnica:  !!job.unidade_unica,
+      });
+
+      const imgBlob = await put(`reels/imagens/${jobId}-${Date.now()}.png`, imgBuffer, {
+        access: 'public', contentType: 'image/png',
+      });
+
+      await sql`
+        UPDATE reels_trabalhos SET
+          status           = 'pronto',
+          roteiro_narracao = ${JSON.stringify(roteiro)},
+          legenda          = ${roteiro.legenda},
+          hashtags         = ${roteiro.hashtags},
+          video_url        = ${imgBlob.url},
+          capa_url         = ${imgBlob.url},
+          custo_estimado   = ${JSON.stringify(custoEstimado)},
+          atualizado_em    = NOW()
+        WHERE id = ${jobId}
+      `;
+
+      return NextResponse.json({ ok: true, roteiro, image_url: imgBlob.url, custo: custoEstimado });
+    }
+
+    // ── Vídeo: atualizar job e disparar GH Actions ─────────────────────────
     const estilo_foto = job.remover_fundo ? "recorte" : "cartao";
 
     await sql`
