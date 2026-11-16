@@ -270,12 +270,19 @@ export async function POST(req: NextRequest) {
     const elData: { audio_base64: string; alignment: ElevenAlignment } = await elRes.json();
     const tempos = computeTempos(roteiro, elData.alignment);
 
-    // ── Upload áudio → Vercel Blob ─────────────────────────────────────────
+    // ── Upload áudio → Vercel Blob (ou data URL como fallback) ────────────
     const audioBuffer = Buffer.from(elData.audio_base64, "base64");
-    const blob = await put(`reels/audio/${jobId}-${Date.now()}.mp3`, audioBuffer, {
-      access:      "public",
-      contentType: "audio/mpeg",
-    });
+    let audioUrl: string;
+    try {
+      const blob = await put(`reels/audio/${jobId}-${Date.now()}.mp3`, audioBuffer, {
+        access:      "public",
+        contentType: "audio/mpeg",
+      });
+      audioUrl = blob.url;
+    } catch {
+      // Blob não configurado — salva inline como data URL
+      audioUrl = `data:audio/mpeg;base64,${elData.audio_base64}`;
+    }
 
     // ── Atualizar job ──────────────────────────────────────────────────────
     const estilo_foto = job.remover_fundo ? "recorte" : "cartao";
@@ -288,13 +295,13 @@ export async function POST(req: NextRequest) {
         roteiro_narracao = ${JSON.stringify(roteiro)},
         legenda          = ${roteiro.legenda},
         hashtags         = ${roteiro.hashtags},
-        audio_url        = ${blob.url},
+        audio_url        = ${audioUrl},
         tempos_narracao  = ${JSON.stringify(tempos)},
         atualizado_em    = NOW()
       WHERE id = ${jobId}
     `;
 
-    return NextResponse.json({ ok: true, roteiro, audio_url: blob.url, tempos });
+    return NextResponse.json({ ok: true, roteiro, audio_url: audioUrl, tempos });
 
   } catch (e) {
     console.error("[reels gerar]", e);
