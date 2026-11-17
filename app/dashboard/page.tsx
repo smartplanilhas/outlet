@@ -115,11 +115,11 @@ export default async function DashboardPage() {
               <span className="text-xs text-gray-400">{resumo.total_unidades} unidades</span>
             </div>
 
-            <div className="bg-white rounded-2xl border border-yellow-100 shadow-sm p-5 flex flex-col gap-1">
+            <a href="/catalogo" className="bg-white rounded-2xl border border-yellow-100 shadow-sm p-5 flex flex-col gap-1 hover:border-yellow-300 hover:shadow-md transition-all group">
               <span className="text-xs font-semibold text-yellow-500 uppercase tracking-wide">Catálogo ML</span>
               <span className="text-3xl font-bold text-yellow-600">{resumo.com_catalogo}</span>
-              <span className="text-xs text-gray-400">{pctCatalogo}% do total</span>
-            </div>
+              <span className="text-xs text-gray-400 group-hover:text-yellow-500 transition-colors">{pctCatalogo}% do total · ver →</span>
+            </a>
 
             <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm p-5 flex flex-col gap-1">
               <span className="text-xs font-semibold text-indigo-500 uppercase tracking-wide">Venda ML</span>
