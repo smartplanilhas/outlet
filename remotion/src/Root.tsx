@@ -2,6 +2,7 @@ import React from 'react';
 import { Composition } from 'remotion';
 import { ReelsComposition, type ReelsProps } from './ReelsComposition';
 import { ImagemComposition, type ImagemProps } from './ImagemComposition';
+import { PostEstatico, type PostEstaticoProps } from './PostEstatico';
 
 const DEFAULT_PROPS: ReelsProps = {
   descricao:        'Airfryer Digital 4L',
@@ -38,8 +39,26 @@ const DEFAULT_IMAGEM: ImagemProps = {
   roteiro:          { textos_tela: { chamada: ['Venha à loja'] } },
 };
 
+const DEFAULT_POST: PostEstaticoProps = {
+  descricao:      'Lixa elétrica orbital 300W',
+  fotoStaticFile: null,
+  fotoUrl:        null,
+  preco:          62,
+  precoInternet:  87,
+  cidade:         'Sorocaba',
+};
+
 export const Root: React.FC = () => (
   <>
+  <Composition
+    id="PostEstatico"
+    component={PostEstatico}
+    durationInFrames={1}
+    fps={30}
+    width={1080}
+    height={1350}
+    defaultProps={DEFAULT_POST}
+  />
   <Composition
     id="ImagemComposition"
     component={ImagemComposition}

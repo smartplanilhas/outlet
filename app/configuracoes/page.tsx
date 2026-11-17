@@ -11,6 +11,7 @@ interface ConfigLoja {
   link_bio: string;
   instagram_usuario: string;
   voz_id: string;
+  cidade: string;
 }
 
 const EMPTY: ConfigLoja = {
@@ -20,6 +21,7 @@ const EMPTY: ConfigLoja = {
   link_bio:          "",
   instagram_usuario: "",
   voz_id:            "1oZawzZ4adgYtgm1oMqN",
+  cidade:            "Sorocaba",
 };
 
 export default function ConfiguracoesPage() {
@@ -155,6 +157,22 @@ export default function ConfiguracoesPage() {
                     value={fields.link_bio}
                     onChange={e => set("link_bio", e.target.value)}
                     placeholder="ex.: wa.me/5515999999999"
+                    className={inp}
+                  />
+                </div>
+              </div>
+
+              {/* Cidade */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
+                <h2 className="font-bold text-gray-700 text-sm uppercase tracking-wide">Post estático</h2>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Cidade (aparece no rodapé "Só na loja física · …")
+                  </label>
+                  <input
+                    value={fields.cidade}
+                    onChange={e => set("cidade", e.target.value)}
+                    placeholder="Sorocaba"
                     className={inp}
                   />
                 </div>

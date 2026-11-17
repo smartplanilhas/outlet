@@ -30,7 +30,8 @@ interface Trabalho {
   erro:             string | null;
   cta:              string[] | null;
   custo_estimado:   { claude: number; elevenlabs: number; total: number } | null;
-  tipo:             "video" | "imagem";
+  tipo:             "video" | "imagem" | "post_estatico";
+  post_url:         string | null;
   criado_em:        string;
   atualizado_em:    string;
   descricao:        string;
@@ -245,9 +246,9 @@ export default function ReelsPage() {
                             <p className="font-semibold text-gray-800 text-sm line-clamp-2">{t.descricao}</p>
                             <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
                               <span>#{t.id} · Produto #{t.produto_id} · {DATE.format(new Date(t.criado_em))}</span>
-                              <span className={t.tipo === "imagem" ? "text-blue-400" : "text-pink-400"}>
-                                · {t.tipo === "imagem" ? "🖼️ Imagem" : "🎬 Vídeo"}
-                                {t.abertura && t.tipo !== "imagem" && ` · ${ABERTURAS[t.abertura]?.label}`}
+                              <span className={t.tipo === "imagem" ? "text-blue-400" : t.tipo === "post_estatico" ? "text-indigo-400" : "text-pink-400"}>
+                                · {t.tipo === "imagem" ? "🖼️ Imagem" : t.tipo === "post_estatico" ? "📄 Post Feed" : "🎬 Vídeo"}
+                                {t.abertura && t.tipo !== "imagem" && t.tipo !== "post_estatico" && ` · ${ABERTURAS[t.abertura]?.label}`}
                               </span>
                               {t.custo_estimado && (() => {
                                 const BRL_RATE = 5.90;
@@ -295,9 +296,9 @@ export default function ReelsPage() {
 
                         {/* Tipo: Vídeo ou Imagem */}
                         {(t.status === "pendente" || t.status === "erro") && !isGerando && (
-                          <div className="mt-3 flex items-center gap-2">
+                          <div className="mt-3 flex items-center gap-2 flex-wrap">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Formato:</span>
-                            {(["video", "imagem"] as const).map(op => (
+                            {(["video", "imagem", "post_estatico"] as const).map(op => (
                               <button
                                 key={op}
                                 type="button"
@@ -315,7 +316,7 @@ export default function ReelsPage() {
                                     : "border-gray-200 bg-white text-gray-500 hover:border-pink-300"
                                 }`}
                               >
-                                {op === "video" ? "🎬 Vídeo" : "🖼️ Imagem"}
+                                {op === "video" ? "🎬 Vídeo" : op === "imagem" ? "🖼️ Imagem" : "📄 Post Feed"}
                               </button>
                             ))}
                           </div>
@@ -435,14 +436,35 @@ export default function ReelsPage() {
                             )}
 
                             {/* Prévia */}
-                            {t.video_url && t.tipo === "imagem" && (
+                            {t.video_url && (t.tipo === "imagem" || t.tipo === "post_estatico") && (
                               <img src={t.video_url} alt="Prévia"
                                 className="w-full max-w-xs rounded-xl shadow" />
                             )}
-                            {t.video_url && t.tipo !== "imagem" && (
-                              <video src={t.video_url} controls
-                                className="w-full max-w-xs rounded-xl"
-                                poster={t.capa_url ?? undefined} />
+                            {t.video_url && t.tipo !== "imagem" && t.tipo !== "post_estatico" && (
+                              <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                <video src={t.video_url} controls
+                                  className="w-full max-w-[200px] rounded-xl"
+                                  poster={t.capa_url ?? undefined} />
+                                {t.post_url && (
+                                  <div className="flex flex-col gap-2">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Post feed (4:5)</p>
+                                    <img src={t.post_url} alt="Post estático"
+                                      className="w-full max-w-[180px] rounded-xl shadow" />
+                                    <a
+                                      href={t.post_url}
+                                      download={`post-${t.id}.jpg`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </svg>
+                                      Baixar imagem
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         )}

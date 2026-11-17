@@ -53,6 +53,10 @@ const durationInFrames = Math.ceil((narrativaDuracao + 3) * fps);
 // CTA: job overrides produto
 const cta = (job.cta_job ?? job.cta_produto ?? ['venha_loja']).slice(0, 2);
 
+// Cidade para o PostEstatico
+const cfgLoja = await sql`SELECT cidade, voz_id FROM config_loja LIMIT 1`;
+const cidade  = cfgLoja[0]?.cidade ?? 'Sorocaba';
+
 // ── Arquivos temporários (data URL → public/) ─────────────────────────────────
 const publicDir = join(__dirname, 'public');
 if (!existsSync(publicDir)) mkdirSync(publicDir, { recursive: true });
@@ -201,11 +205,41 @@ if (job.tipo === 'imagem') {
   );
   console.log('Upload concluído:', videoBlob.url);
 
+  // ── Post Estático (1080×1350) ──────────────────────────────────────────
+  const postPath = `${outDir}/post-${jobId}.jpg`;
+  const postProps = {
+    descricao:      job.descricao,
+    fotoStaticFile,
+    fotoUrl,
+    preco:          Number(job.preco),
+    precoInternet:  job.preco_internet ? Number(job.preco_internet) : null,
+    cidade,
+  };
+
+  const postComp = await selectComposition({
+    serveUrl, id: 'PostEstatico', inputProps: postProps,
+  });
+
+  console.log('Gerando post estático 1080×1350...');
+  await renderStill({
+    composition: postComp, serveUrl,
+    output: postPath, inputProps: postProps,
+    frame: 0, imageFormat: 'jpeg', jpegQuality: 92,
+  });
+
+  const postBlob = await put(
+    `reels/posts/${jobId}-${Date.now()}.jpg`,
+    readFileSync(postPath),
+    { access: 'public', contentType: 'image/jpeg' },
+  );
+  console.log('Post estático:', postBlob.url);
+
   await sql`
     UPDATE reels_trabalhos SET
       status        = 'pronto',
       video_url     = ${videoBlob.url},
       capa_url      = ${coverBlob.url},
+      post_url      = ${postBlob.url},
       atualizado_em = NOW()
     WHERE id = ${jobId}
   `;

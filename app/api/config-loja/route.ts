@@ -27,19 +27,21 @@ export async function PUT(req: NextRequest) {
           horario           = ${body.horario ?? null},
           link_bio          = ${body.link_bio ?? null},
           instagram_usuario = ${body.instagram_usuario ?? null},
-          voz_id            = ${body.voz_id ?? '1oZawzZ4adgYtgm1oMqN'}
+          voz_id            = ${body.voz_id ?? '1oZawzZ4adgYtgm1oMqN'},
+          cidade            = ${body.cidade ?? 'Sorocaba'}
         WHERE id = ${existing[0].id}
       `;
     } else {
       await sql`
-        INSERT INTO config_loja (whatsapp, endereco, horario, link_bio, instagram_usuario, voz_id)
+        INSERT INTO config_loja (whatsapp, endereco, horario, link_bio, instagram_usuario, voz_id, cidade)
         VALUES (
           ${body.whatsapp ?? null},
           ${body.endereco ?? null},
           ${body.horario ?? null},
           ${body.link_bio ?? null},
           ${body.instagram_usuario ?? null},
-          ${body.voz_id ?? '1oZawzZ4adgYtgm1oMqN'}
+          ${body.voz_id ?? '1oZawzZ4adgYtgm1oMqN'},
+          ${body.cidade ?? 'Sorocaba'}
         )
       `;
     }

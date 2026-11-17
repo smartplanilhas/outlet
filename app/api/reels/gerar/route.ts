@@ -214,11 +214,13 @@ export async function POST(req: NextRequest) {
       LIMIT 10
     `;
 
-    const isImagem = (job.tipo ?? 'video') === 'imagem';
-    console.log(`[gerar] job #${jobId} tipo="${job.tipo}" isImagem=${isImagem}`);
+    const isImagem      = (job.tipo ?? 'video') === 'imagem';
+    const isPostEstatico = (job.tipo ?? 'video') === 'post_estatico';
+    console.log(`[gerar] job #${jobId} tipo="${job.tipo}" isImagem=${isImagem} isPostEstatico=${isPostEstatico}`);
 
-    const cfgRows = await sql`SELECT voz_id FROM config_loja LIMIT 1`;
-    const voz_id  = cfgRows[0]?.voz_id ?? "1oZawzZ4adgYtgm1oMqN";
+    const cfgRows = await sql`SELECT voz_id, cidade FROM config_loja LIMIT 1`;
+    const voz_id  = cfgRows[0]?.voz_id  ?? "1oZawzZ4adgYtgm1oMqN";
+    const cidade  = cfgRows[0]?.cidade  ?? "Sorocaba";
 
     const ctaJob = ((job.cta_job ?? job.cta) as string[] ?? ["whatsapp"]).slice(0, 2);
     const vantagensJob = (job.vantagens as string[] ?? []).filter(Boolean);
@@ -229,7 +231,7 @@ export async function POST(req: NextRequest) {
       : 0;
 
     const ultimas3: AberturaKey[] = ultimos.slice(0, 3).map((r: Record<string, unknown>) => r.abertura as string).filter(Boolean) as AberturaKey[];
-    const aberturaKey: AberturaKey = isImagem ? 'caixa_misteriosa' : (
+    const aberturaKey: AberturaKey = (isImagem || isPostEstatico) ? 'caixa_misteriosa' : (
       novaAbertura && job.abertura
         ? sortearAbertura({ unidade_unica: !!job.unidade_unica, desconto_pct: desconto, ultimas_3: [job.abertura as AberturaKey, ...ultimas3].slice(0, 3) })
         : sortearAbertura({ unidade_unica: !!job.unidade_unica, desconto_pct: desconto, ultimas_3: ultimas3 })
@@ -240,7 +242,7 @@ export async function POST(req: NextRequest) {
     }).filter(Boolean) as string[];
 
     // ── Prompt Claude (simplificado para imagem) ───────────────────────────
-    const prompt = isImagem
+    const prompt = (isImagem || isPostEstatico)
       ? buildPromptImagem({
           descricao:     job.descricao,
           vantagens:     vantagensJob,
@@ -318,7 +320,7 @@ export async function POST(req: NextRequest) {
     let custoElevenLabs = 0;
     let caracteres      = 0;
 
-    if (!isImagem) {
+    if (!isImagem && !isPostEstatico) {
       const narracao = `${roteiro.abertura_fala} ${roteiro.corpo_fala} ${roteiro.fechamento_fala}`;
 
       const elRes = await fetch(
@@ -366,6 +368,39 @@ export async function POST(req: NextRequest) {
       total:      Number(custoTotal.toFixed(5)),
       detalhes:   { input_tokens: inputTokens, output_tokens: outputTokens, caracteres },
     };
+
+    // ── Post estático (1080×1350, feed 4:5) ──────────────────────────────
+    if (isPostEstatico) {
+      const { generatePostEstatico } = await import('./generatePostStatico');
+      const imgBuffer = await generatePostEstatico({
+        descricao:     job.descricao,
+        fotoUrl:       job.foto_url ?? null,
+        preco:         Number(job.preco),
+        precoInternet: job.preco_internet ? Number(job.preco_internet) : null,
+        cta:           ctaJob,
+        cidade,
+      });
+
+      const imgBlob = await put(`reels/posts/${jobId}-${Date.now()}.png`, imgBuffer, {
+        access: 'public', contentType: 'image/png',
+      });
+
+      await sql`
+        UPDATE reels_trabalhos SET
+          status           = 'pronto',
+          roteiro_narracao = ${JSON.stringify(roteiro)},
+          legenda          = ${roteiro.legenda},
+          hashtags         = ${roteiro.hashtags},
+          video_url        = ${imgBlob.url},
+          capa_url         = ${imgBlob.url},
+          post_url         = ${imgBlob.url},
+          custo_estimado   = ${JSON.stringify(custoEstimado)},
+          atualizado_em    = NOW()
+        WHERE id = ${jobId}
+      `;
+
+      return NextResponse.json({ ok: true, roteiro, image_url: imgBlob.url, custo: custoEstimado });
+    }
 
     // ── Imagem: gerar com next/og direto, sem GH Actions ──────────────────
     if (isImagem) {
