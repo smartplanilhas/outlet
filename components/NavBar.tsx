@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 
 const LINKS = [
-  { href: "/",               label: "Triagem"  },
-  { href: "/triagens",       label: "Histórico" },
-  { href: "/produtos",       label: "Produtos" },
-  { href: "/consulta",       label: "Consulta" },
-  { href: "/vendas",         label: "Vendas" },
-  { href: "/reels",          label: "Reels",   reels: true },
-  { href: "/venda",          label: "PDV",     pdv: true },
-  { href: "/configuracoes",  label: "Config" },
+  { href: "/",               label: "Triagem"    },
+  { href: "/triagens",       label: "Histórico"  },
+  { href: "/produtos",       label: "Produtos"   },
+  { href: "/dashboard",      label: "Dashboard"  },
+  { href: "/consulta",       label: "Consulta"   },
+  { href: "/vendas",         label: "Vendas"     },
+  { href: "/reels",          label: "Reels",     reels: true },
+  { href: "/venda",          label: "PDV",       pdv: true },
+  { href: "/configuracoes",  label: "Config"     },
 ] as const;
 
 interface Props {
